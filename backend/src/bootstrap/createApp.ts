@@ -39,7 +39,7 @@ export async function createApp(): Promise<{
   // @fastify/static is an optional peer of the Swagger/Fastify integration.
   // The API must not die before auth routes are reachable just because docs UI
   // is unavailable in the minimal production image.
-  if (process.env.ENABLE_SWAGGER === 'true') {
+  if (process.env['ENABLE_SWAGGER'] === 'true') {
     setupSwagger(app, config);
   }
 
