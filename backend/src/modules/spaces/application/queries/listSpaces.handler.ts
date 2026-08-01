@@ -16,12 +16,30 @@ export class ListSpacesHandler {
   ) {}
 
   async execute(userId: UserId): Promise<readonly Space[]> {
-    return this.cache.remember(cacheKeys.spaceList(userId), cacheTtl.spaceList, () =>
-      this.spaces.listForUser(userId).then((spaces) => [...spaces]),
-    );
+    const cached = await this.cache.get<readonly Space[]>(cacheKeys.spaceList(userId));
+
+    if (cached !== null) {
+      return cached.map(reviveSpaceDates);
+    }
+
+    const spaces = [...(await this.spaces.listForUser(userId))];
+    await this.cache.set(cacheKeys.spaceList(userId), spaces, cacheTtl.spaceList);
+    return spaces;
   }
 
   async listInvitations(userId: UserId, email: string): Promise<readonly Invitation[]> {
     return this.spaces.listInvitationsForUser(userId, email);
   }
+}
+
+/** Redis JSON turns Date values into strings; restore the domain invariant. */
+function reviveSpaceDates(space: Space): Space {
+  return {
+    ...space,
+    createdAt: new Date(space.createdAt),
+    members: space.members.map((member) => ({
+      ...member,
+      joinedAt: new Date(member.joinedAt),
+    })),
+  };
 }
