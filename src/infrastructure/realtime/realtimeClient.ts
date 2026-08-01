@@ -17,19 +17,13 @@ function isServerMessage(value: unknown): value is RealtimeServerMessageDto {
     return false;
   }
 
-  const candidate = value as { channel?: unknown; type?: unknown; spaceId?: unknown };
+  const candidate = value as { type?: unknown; spaceId?: unknown };
 
-  return (
-    typeof candidate.channel === 'string' &&
-    typeof candidate.type === 'string' &&
-    typeof candidate.spaceId === 'string'
-  );
+  return typeof candidate.type === 'string' &&
+    (candidate.spaceId === undefined || typeof candidate.spaceId === 'string');
 }
 
-/**
- * Realtime only *delivers* changes made by other members. HTTP stays the source
- * of truth, so every reconnect is followed by a full space sync upstream.
- */
+/** Realtime only delivers changes; HTTP remains the source of truth. */
 export function createRealtimeClient(options: {
   readonly url: string;
   readonly token: () => Promise<string | null>;
@@ -53,9 +47,7 @@ export function createRealtimeClient(options: {
     if (status === next) {
       return;
     }
-
     status = next;
-
     for (const listener of statusListeners) {
       listener(next);
     }
@@ -66,7 +58,6 @@ export function createRealtimeClient(options: {
       clearInterval(heartbeat);
       heartbeat = null;
     }
-
     if (reconnectTimer !== null) {
       clearTimeout(reconnectTimer);
       reconnectTimer = null;
@@ -77,15 +68,12 @@ export function createRealtimeClient(options: {
     if (intentionallyClosed || subscription === null) {
       return;
     }
-
     const delay = Math.min(
       realtimeConfig.reconnectBaseDelayMs * 2 ** attempts,
       realtimeConfig.reconnectMaxDelayMs,
     );
-
     attempts += 1;
     setStatus('reconnecting');
-
     reconnectTimer = setTimeout(() => {
       if (subscription !== null) {
         void open(subscription.spaceId, subscription.channels);
@@ -96,12 +84,9 @@ export function createRealtimeClient(options: {
   async function open(spaceId: string, channels: readonly RealtimeChannel[]): Promise<void> {
     stopTimers();
     socket?.close();
-
     const token = await options.token();
     const url = token === null ? options.url : `${options.url}?token=${encodeURIComponent(token)}`;
-
     setStatus(hadOpenConnection ? 'reconnecting' : 'connecting');
-
     const next = new WebSocket(url);
     socket = next;
 
@@ -109,13 +94,10 @@ export function createRealtimeClient(options: {
       attempts = 0;
       setStatus('open');
       next.send(JSON.stringify({ type: 'subscribe', spaceId, channels }));
-
       if (hadOpenConnection) {
         options.onReconnected();
       }
-
       hadOpenConnection = true;
-
       heartbeat = setInterval(() => {
         if (next.readyState === WebSocket.OPEN) {
           next.send(JSON.stringify({ type: 'ping' }));
@@ -127,14 +109,11 @@ export function createRealtimeClient(options: {
       if (typeof event.data !== 'string') {
         return;
       }
-
       try {
         const parsed: unknown = JSON.parse(event.data);
-
         if (!isServerMessage(parsed)) {
           return;
         }
-
         for (const listener of messageListeners) {
           listener(parsed);
         }
@@ -149,12 +128,10 @@ export function createRealtimeClient(options: {
 
     next.onclose = () => {
       stopTimers();
-
       if (!intentionallyClosed) {
         scheduleReconnect();
         return;
       }
-
       setStatus('closed');
     };
   }
@@ -165,7 +142,6 @@ export function createRealtimeClient(options: {
       subscription = { spaceId, channels };
       void open(spaceId, channels);
     },
-
     disconnect() {
       intentionallyClosed = true;
       subscription = null;
@@ -174,23 +150,18 @@ export function createRealtimeClient(options: {
       socket = null;
       setStatus('closed');
     },
-
     onMessage(listener) {
       messageListeners.add(listener);
-
       return () => {
         messageListeners.delete(listener);
       };
     },
-
     onStatus(listener) {
       statusListeners.add(listener);
-
       return () => {
         statusListeners.delete(listener);
       };
     },
-
     status() {
       return status;
     },
