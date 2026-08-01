@@ -4,7 +4,7 @@ import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 
-import { FIRE_BLOOM_DEFAULTS } from '@/scene/surface-objects/fire';
+import { FIRE_BLOOM_DEFAULTS } from '@/scene/objects/fire/fireSettings';
 
 export type FireBloomOptions = {
   readonly strength?: number;
@@ -13,9 +13,9 @@ export type FireBloomOptions = {
 };
 
 /**
- * Builds an EffectComposer with RenderPass + UnrealBloomPass so Flame_Core's
- * emissive contribution blooms. Mount only when the GL backend supports it
- * (prefer web / high tier — bloom is expensive on mobile GPUs).
+ * Builds an EffectComposer with RenderPass + UnrealBloomPass so the additive
+ * fire layers bloom. Mount only when the GL backend supports it (prefer web /
+ * high tier — bloom is expensive on mobile GPUs).
  */
 export function createFireBloomComposer(
   renderer: WebGLRenderer,
