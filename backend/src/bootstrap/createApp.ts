@@ -31,7 +31,6 @@ export async function createApp(): Promise<{
   app.enableShutdownHooks();
 
   await app.register(import('@fastify/helmet'), {
-    // The API serves JSON only; CSP would just add noise.
     contentSecurityPolicy: false,
   });
 
@@ -40,7 +39,12 @@ export async function createApp(): Promise<{
     credentials: true,
   });
 
-  setupSwagger(app, config);
+  // Swagger UI requires the optional @fastify/static peer dependency. Keep the
+  // API bootable in the minimal production image; enable docs explicitly only
+  // in an image that installs that peer.
+  if (process.env.ENABLE_SWAGGER === 'true') {
+    setupSwagger(app, config);
+  }
 
   return { app, config };
 }
