@@ -1,11 +1,12 @@
 import type { Cell } from '@/domains/surface-objects/domain/value-objects/Cell';
 import type { SurfaceObjectId } from '@/domains/surface-objects/domain/value-objects/SurfaceObjectId';
 import { cameraConfig, orbitPosition } from '@/scene/camera/cameraConfig';
-import type { OrbitState } from '@/scene/stores/cameraStore';
 import { cellToWorld } from '@/scene/surface/cellToWorld';
 import { SURFACE_CELL_WORLD_SIZE } from '@/scene/surface/constants';
 
-export type PickableFire = {
+import type { OrbitFrame } from './fogVisibility';
+
+export type PickableObject = {
   readonly id: SurfaceObjectId;
   readonly cell: Cell;
 };
@@ -18,7 +19,7 @@ export function groundHitFromScreen(
   screenY: number,
   screenWidth: number,
   screenHeight: number,
-  orbit: OrbitState,
+  orbit: OrbitFrame,
 ): { readonly x: number; readonly z: number } | null {
   if (screenWidth <= 0 || screenHeight <= 0) {
     return null;
@@ -37,12 +38,11 @@ export function groundHitFromScreen(
 
   // Right = forward × worldUp (assuming worldUp = (0,1,0))
   let rx = -fz;
-  let ry = 0;
+  const ry = 0;
   let rz = fx;
   const rl = Math.hypot(rx, ry, rz);
   if (rl < 1e-6) {
     rx = 1;
-    ry = 0;
     rz = 0;
   } else {
     rx /= rl;
@@ -76,20 +76,20 @@ export function groundHitFromScreen(
   return { x: cam.x + dirX * t, z: cam.z + dirZ * t };
 }
 
-/** Nearest fire whose cell centre is within half a cell of the ground hit. */
-export function pickNearestFire(
+/** Nearest object whose cell centre is within half a cell of the ground hit. */
+export function pickNearestObject(
   hit: { readonly x: number; readonly z: number },
-  fires: readonly PickableFire[],
+  objects: readonly PickableObject[],
   maxDistance = SURFACE_CELL_WORLD_SIZE * 0.65,
-): PickableFire | null {
-  let best: PickableFire | null = null;
+): PickableObject | null {
+  let best: PickableObject | null = null;
   let bestDist = maxDistance;
 
-  for (const fire of fires) {
-    const world = cellToWorld(fire.cell);
+  for (const object of objects) {
+    const world = cellToWorld(object.cell);
     const dist = Math.hypot(world.x - hit.x, world.z - hit.z);
     if (dist <= bestDist) {
-      best = fire;
+      best = object;
       bestDist = dist;
     }
   }

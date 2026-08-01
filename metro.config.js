@@ -3,8 +3,6 @@ const { getDefaultConfig } = require('expo/metro-config');
 
 const config = getDefaultConfig(__dirname);
 
-config.resolver.assetExts.push('glb', 'gltf');
-
 // The backend is a separate npm project inside this repo. Metro must not crawl it,
 // otherwise its node_modules produce duplicate-module and resolution errors.
 config.resolver.blockList = [

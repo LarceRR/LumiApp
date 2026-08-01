@@ -1,9 +1,9 @@
 /**
- * Preferred camera-facing axis for a fire after yaw.
- * Sphere core has no authored face; local +X remains the stable convention
- * so spawn / inspect framing stays deterministic with `fireYawRadians`.
+ * Preferred camera-facing axis for an object after yaw.
+ * Radially symmetric objects have no authored face; local +X stays the
+ * convention so spawn / inspect framing is deterministic with `objectYawRadians`.
  */
-export const FIRE_LOCAL_FACE_NORMAL = { x: 1, z: 0 } as const;
+export const OBJECT_LOCAL_FACE_NORMAL = { x: 1, z: 0 } as const;
 
 /**
  * Orbit azimuth that places the camera in front of an object.
@@ -16,7 +16,7 @@ export const FIRE_LOCAL_FACE_NORMAL = { x: 1, z: 0 } as const;
  */
 export function orbitAzimuthFacing(
   yaw: number,
-  localFaceNormal: { readonly x: number; readonly z: number } = FIRE_LOCAL_FACE_NORMAL,
+  localFaceNormal: { readonly x: number; readonly z: number } = OBJECT_LOCAL_FACE_NORMAL,
 ): number {
   const cos = Math.cos(yaw);
   const sin = Math.sin(yaw);

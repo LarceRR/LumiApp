@@ -1,7 +1,7 @@
 import { type SpawnPhase, surfaceObjectMotion } from '@/design-system/motion';
 import type { Cell } from '@/domains/surface-objects/domain/value-objects/Cell';
+import { objectYawRadians } from '@/scene/objects/core/objectYaw';
 import { cellToWorld } from '@/scene/surface/cellToWorld';
-import { fireYawRadians } from '@/scene/surface-objects/fire';
 
 import { useCameraStore } from '../stores/cameraStore';
 import { useSceneStore } from '../stores/sceneStore';
@@ -48,7 +48,7 @@ export async function playSpawnSequence(options: SpawnSequenceOptions): Promise<
   const world = cellToWorld(options.cell);
   const tourSeconds = useCameraStore
     .getState()
-    .startFocusTour({ x: world.x, y: 0, z: world.z }, fireYawRadians(options.objectId));
+    .startFocusTour({ x: world.x, y: 0, z: world.z }, objectYawRadians(options.objectId));
 
   phase('cameraFocus');
   await wait(Math.max(tourSeconds * 1000, spawn.cameraFocusMs));
