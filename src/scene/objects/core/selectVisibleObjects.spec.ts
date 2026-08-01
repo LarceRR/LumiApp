@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
+import { surfaceObjectId } from '@/domains/surface-objects/domain/value-objects/SurfaceObjectId';
+
 import { selectVisibleObjects, visibleObjectsSignature } from './selectVisibleObjects';
 
 const cellToWorld = (cell: { readonly x: number; readonly y: number }) => ({
@@ -8,7 +10,7 @@ const cellToWorld = (cell: { readonly x: number; readonly y: number }) => ({
 });
 
 const candidate = (id: string, x: number, kind = 'Fire', inFrustum = true) => ({
-  id,
+  id: surfaceObjectId(id),
   cell: { x, y: 0 },
   kind,
   inFrustum,
@@ -30,7 +32,10 @@ describe('selectVisibleObjects', () => {
       objects: [candidate('far', 10), candidate('near', 1), candidate('mid', 4)],
     });
 
-    expect(result.map((item) => item.id)).toEqual(['near', 'mid']);
+    expect(result.map((item) => item.id)).toEqual([
+      surfaceObjectId('near'),
+      surfaceObjectId('mid'),
+    ]);
   });
 
   it('skips other kinds, off-screen objects and fogged-out objects', () => {
@@ -49,16 +54,20 @@ describe('selectVisibleObjects', () => {
     const result = selectVisibleObjects({
       ...base,
       maxInstances: 1,
-      spawningId: 'spawning',
+      spawningId: surfaceObjectId('spawning'),
       objects: [candidate('near', 1), candidate('spawning', 40)],
     });
 
-    expect(result.map((item) => item.id)).toContain('spawning');
+    expect(result.map((item) => item.id)).toContain(surfaceObjectId('spawning'));
   });
 
   it('builds a stable signature', () => {
-    expect(visibleObjectsSignature([{ id: 'a', cell: { x: 1, y: 2 }, distanceSq: 0 }])).toBe(
-      'a:1,2',
-    );
+    expect(
+      visibleObjectsSignature({
+        id: surfaceObjectId('a'),
+        cell: { x: 1, y: 2 },
+        distanceSq: 0,
+      } as const),
+    ).toBe('a:1,2');
   });
 });
