@@ -18,27 +18,32 @@ export type SpaceMemberDto = {
   readonly role: SpaceRoleDto;
   readonly permissions: readonly SpacePermissionDto[];
   readonly displayName: string;
+  readonly avatarUrl: string | null;
+  readonly joinedAt: string;
 };
 
 export type SpaceDto = {
   readonly id: string;
   readonly type: SpaceTypeDto;
   readonly title: string;
-  readonly memberIds: readonly string[];
+  readonly ownerId: string;
   readonly members: readonly SpaceMemberDto[];
-  /** ISO-8601 */
   readonly createdAt: string;
   readonly version: number;
 };
 
-export type InvitationStatusDto = 'Pending' | 'Accepted' | 'Rejected';
+export type InvitationStatusDto = 'Pending' | 'Accepted' | 'Rejected' | 'Revoked';
 
 export type InvitationDto = {
   readonly id: string;
   readonly spaceId: string;
+  readonly spaceTitle: string;
+  readonly invitedByUserId: string;
+  readonly inviteeEmail: string;
+  readonly permissions: readonly SpacePermissionDto[];
   readonly status: InvitationStatusDto;
-  readonly invitedEmail: string;
   readonly createdAt: string;
+  readonly respondedAt: string | null;
 };
 
 export type CreateSpaceRequestDto = {
