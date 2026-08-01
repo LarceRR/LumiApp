@@ -26,21 +26,12 @@ import { AppExceptionFilter } from '@/shared/filters/appException.filter';
 import { JwtAuthGuard } from '@/shared/guards/jwtAuth.guard';
 import { SpacePermissionGuard } from '@/shared/guards/spacePermission.guard';
 import { LoggerModule } from '@/shared/logger/logger.module';
-import { CLOCK, systemClock } from '@/shared/utils/clock';
-import { ID_GENERATOR, uuidGenerator } from '@/shared/utils/id';
-import { cryptoRandomSource, RANDOM_SOURCE } from '@/shared/utils/random';
+import { RuntimeModule } from '@/shared/runtime.module';
 
-/**
- * The composition root. Guards, the validation pipe and the error filter are
- * registered globally so a new module is secure, validated and consistent without
- * repeating itself.
- *
- * Order matters: authentication runs before the space permission check, and
- * throttling runs first so an unauthenticated flood is cheap to reject.
- */
 @Module({
   imports: [
     ConfigModule,
+    RuntimeModule,
     LoggerModule,
     DrizzleModule,
     RedisModule,
@@ -48,7 +39,6 @@ import { cryptoRandomSource, RANDOM_SOURCE } from '@/shared/utils/random';
     StorageModule,
     EventEmitterModule.forRoot({ wildcard: false, verboseMemoryLeak: false }),
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 120 }]),
-
     AuthModule,
     UsersModule,
     SpacesModule,
@@ -63,9 +53,6 @@ import { cryptoRandomSource, RANDOM_SOURCE } from '@/shared/utils/random';
   ],
   controllers: [HealthController],
   providers: [
-    { provide: CLOCK, useValue: systemClock },
-    { provide: ID_GENERATOR, useValue: uuidGenerator },
-    { provide: RANDOM_SOURCE, useValue: cryptoRandomSource },
     { provide: APP_PIPE, useClass: ZodValidationPipe },
     { provide: APP_FILTER, useClass: AppExceptionFilter },
     { provide: APP_GUARD, useClass: ThrottlerGuard },
