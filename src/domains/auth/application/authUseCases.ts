@@ -18,7 +18,6 @@ export function signInUseCase(deps: AuthUseCaseDeps): UseCase<SignInCredentials,
   return async (credentials) => {
     const session = await deps.auth.signIn(credentials);
     await deps.storage.write(session);
-
     return session;
   };
 }
@@ -27,7 +26,6 @@ export function signUpUseCase(deps: AuthUseCaseDeps): UseCase<SignUpCredentials,
   return async (credentials) => {
     const session = await deps.auth.signUp(credentials);
     await deps.storage.write(session);
-
     return session;
   };
 }
@@ -36,22 +34,21 @@ export function signOutUseCase(deps: AuthUseCaseDeps): UseCase<void, void> {
   return async () => {
     const session = await deps.storage.read();
 
-    if (session !== null) {
-      await deps.auth.signOut(session);
+    try {
+      if (session !== null) {
+        await deps.auth.signOut(session);
+      }
+    } finally {
+      // Local logout must never be blocked by a dead API or expired token.
+      await deps.storage.clear();
     }
-
-    await deps.storage.clear();
   };
 }
 
-/**
- * Called once during bootstrap. A stored-but-expired session is refreshed in
- * place so the user is not bounced to the sign-in screen on cold start.
- */
+/** Called once during bootstrap. Refreshes a stored expired session in place. */
 export function restoreSessionUseCase(deps: AuthUseCaseDeps): UseCase<void, AuthSession | null> {
   return async () => {
     const stored = await deps.storage.read();
-
     if (stored === null) {
       return null;
     }
@@ -63,11 +60,9 @@ export function restoreSessionUseCase(deps: AuthUseCaseDeps): UseCase<void, Auth
     try {
       const refreshed = await deps.auth.refresh(stored.refreshToken);
       await deps.storage.write(refreshed);
-
       return refreshed;
     } catch {
       await deps.storage.clear();
-
       return null;
     }
   };
