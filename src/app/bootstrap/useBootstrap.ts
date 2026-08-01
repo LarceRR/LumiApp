@@ -13,11 +13,22 @@ import { loadNativeTabIconSources } from '../navigation/nativeTabIconSources';
 import { usesNativeTabBar } from '../navigation/usesNativeTabBar';
 import { useServices, useUseCases } from '../providers/ContainerProvider';
 
-/**
- * Single startup pass: restore the session, hydrate settings, respect the OS
- * reduce-motion preference, and flush anything queued while offline. Runs once,
- * not as a reaction to render.
- */
+const BOOT_TIMEOUT_MS = 3_000;
+
+async function withTimeout<T>(promise: Promise<T>, label: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`${label} timed out`)), BOOT_TIMEOUT_MS);
+  });
+
+  try {
+    return await Promise.race([promise, timeout]);
+  } finally {
+    if (timer !== undefined) clearTimeout(timer);
+  }
+}
+
+/** Startup must always release the navigator, even with no backend connection. */
 export function useBootstrap(): { readonly isReady: boolean } {
   const { restoreSession } = useUseCases();
   const { sessions, storage, offlineQueue, logger } = useServices();
@@ -25,42 +36,46 @@ export function useBootstrap(): { readonly isReady: boolean } {
   const started = useRef(false);
 
   useEffect(() => {
-    if (started.current) {
-      return;
-    }
-
+    if (started.current) return;
     started.current = true;
 
     const run = async (): Promise<void> => {
-      const stored = await storage.read<PersistedSettings>(storageKeys.settings);
-
-      if (stored !== null) {
-        useSettingsStore.getState().hydrate(stored);
-      }
-
       try {
-        const reduceMotion = await AccessibilityInfo.isReduceMotionEnabled();
-        if (reduceMotion) {
-          useSettingsStore.getState().setReduceMotion(true);
-        }
+        const settings = await withTimeout(
+          storage.read<PersistedSettings>(storageKeys.settings),
+          'settings restore',
+        );
+        if (settings !== null) useSettingsStore.getState().hydrate(settings);
       } catch (error) {
-        logger.debug('Не удалось прочитать настройку анимаций', { error: String(error) });
+        logger.debug('Settings restore skipped', { error: String(error) });
       }
 
       try {
-        const session = await restoreSession();
+        const reduceMotion = await withTimeout(
+          AccessibilityInfo.isReduceMotionEnabled(),
+          'accessibility settings',
+        );
+        if (reduceMotion) useSettingsStore.getState().setReduceMotion(true);
+      } catch (error) {
+        logger.debug('Accessibility settings skipped', { error: String(error) });
+      }
+
+      try {
+        const session = await withTimeout(restoreSession(), 'session restore');
         sessions.adopt(session);
         useAuthStore.getState().setSession(session);
       } catch (error) {
-        logger.error('Не удалось восстановить сессию', toAppError(error));
+        logger.warn('Session restore skipped; opening anonymous app', {
+          error: String(toAppError(error).message),
+        });
         useAuthStore.getState().setStatus('anonymous');
       }
 
       if (usesNativeTabBar()) {
         try {
-          await loadNativeTabIconSources();
+          await withTimeout(loadNativeTabIconSources(), 'native tab icons');
         } catch (error) {
-          logger.error('Не удалось подготовить иконки вкладок', toAppError(error));
+          logger.debug('Native tab icons skipped', { error: String(error) });
         }
       }
 
@@ -71,7 +86,6 @@ export function useBootstrap(): { readonly isReady: boolean } {
     void run();
   }, [restoreSession, sessions, storage, offlineQueue, logger]);
 
-  // Persist settings whenever they change, without a save button.
   useEffect(
     () =>
       useSettingsStore.subscribe((state) => {
@@ -80,17 +94,11 @@ export function useBootstrap(): { readonly isReady: boolean } {
     [storage],
   );
 
-  // Returning to the foreground is the cheapest reliable moment to drain the queue.
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (status) => {
-      if (status === 'active') {
-        void offlineQueue.flush();
-      }
+      if (status === 'active') void offlineQueue.flush();
     });
-
-    return () => {
-      subscription.remove();
-    };
+    return () => subscription.remove();
   }, [offlineQueue]);
 
   return { isReady };
