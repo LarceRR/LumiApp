@@ -1,4 +1,5 @@
-import { surfaceObjectMotion } from '@/design-system/motion/motion-safe';
+import { surfaceObjectMotion } from '@/design-system/motion/surface-objects';
+
 import { isLostInFog } from './fogVisibility';
 
 export type AnimationGateInput = {
