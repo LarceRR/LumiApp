@@ -8,19 +8,16 @@ export function createHttpSpaceRepository(http: HttpClient): SpaceRepository {
   return {
     async list() {
       const dtos = await http.get<readonly SpaceDto[]>('spaces');
-
       return dtos.map(toSpace);
     },
 
     async byId(id) {
       const dto = await http.get<SpaceDto>(`spaces/${id}`);
-
       return toSpace(dto);
     },
 
     async create(input) {
       const dto = await http.post<SpaceDto>('spaces', input);
-
       return toSpace(dto);
     },
 
@@ -29,15 +26,14 @@ export function createHttpSpaceRepository(http: HttpClient): SpaceRepository {
         email: input.email,
         permissions: input.permissions,
       });
-
       return toInvitation(dto);
     },
 
     async respondToInvitation(invitationId, accept) {
       const dto = await http.post<InvitationDto>(
-        `invitations/${invitationId}/${accept ? 'accept' : 'reject'}`,
+        `spaces/invitations/${invitationId}/respond`,
+        { accept },
       );
-
       return toInvitation(dto);
     },
   };
