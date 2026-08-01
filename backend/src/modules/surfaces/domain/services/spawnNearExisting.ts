@@ -97,11 +97,7 @@ function collectCandidates(
   return candidates;
 }
 
-function isSeparated(
-  candidate: Cell,
-  occupied: readonly Cell[],
-  minSeparation: number,
-): boolean {
+function isSeparated(candidate: Cell, occupied: readonly Cell[], minSeparation: number): boolean {
   for (const cell of occupied) {
     if (cellDistance(candidate, cell) < minSeparation) {
       return false;
