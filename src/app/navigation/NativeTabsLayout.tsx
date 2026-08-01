@@ -1,0 +1,49 @@
+import { Icon, Label, NativeTabs } from 'expo-router/unstable-native-tabs';
+import type { ReactElement } from 'react';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
+
+import { colors } from '@/design-system/colors/colors';
+
+import { getNativeTabIconSources } from './nativeTabIconSources';
+import { TAB_ROUTES } from './tabRoutes';
+
+export function NativeTabsLayout(): ReactElement {
+  const iconSources = getNativeTabIconSources();
+
+  if (iconSources === null) {
+    return (
+      <View style={styles.placeholder}>
+        <ActivityIndicator color={colors.textSecondary} />
+      </View>
+    );
+  }
+
+  return (
+    <NativeTabs minimizeBehavior="never" disableTransparentOnScrollEdge>
+      {TAB_ROUTES.map((route) => {
+        const icons = iconSources[route.name];
+
+        return (
+          <NativeTabs.Trigger key={route.name} name={route.name}>
+            <Label>{route.title}</Label>
+            <Icon
+              src={{
+                default: icons.default,
+                selected: icons.selected,
+              }}
+            />
+          </NativeTabs.Trigger>
+        );
+      })}
+    </NativeTabs>
+  );
+}
+
+const styles = StyleSheet.create({
+  placeholder: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.surface,
+  },
+});
