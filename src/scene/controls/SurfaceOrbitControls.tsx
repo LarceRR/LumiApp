@@ -6,11 +6,11 @@ import { cameraMotion } from '@/design-system/motion/camera';
 import { knownKinds } from '@/domains/surface-objects/domain/value-objects/SurfaceObjectKind';
 import { useSurfaceObjectsStore } from '@/domains/surface-objects/presentation/stores/surfaceObjectsStore';
 import { panDeltaFromScreen, worldUnitsPerPixel } from '@/scene/camera/cameraConfig';
+import { objectYawRadians } from '@/scene/objects/core/objectYaw';
+import { groundHitFromScreen, pickNearestObject } from '@/scene/objects/core/pickObjectAtScreen';
 import { useCameraStore } from '@/scene/stores/cameraStore';
 import { useSceneStore } from '@/scene/stores/sceneStore';
 import { cellToWorld } from '@/scene/surface/cellToWorld';
-import { fireYawRadians } from '@/scene/surface-objects/fire';
-import { groundHitFromScreen, pickNearestFire } from '@/scene/surface-objects/pickFireAtScreen';
 
 export type SurfaceOrbitControlsProps = {
   readonly children: ReactElement;
@@ -172,8 +172,14 @@ function SurfaceOrbitControlsComponent({ children }: SurfaceOrbitControlsProps):
         );
         const gain = cameraMotion.panInertiaGain;
         velocity = {
-          a: Math.max(-cameraMotion.panMaxVelocity, Math.min(cameraMotion.panMaxVelocity, nativeWorldVel.x * gain)),
-          b: Math.max(-cameraMotion.panMaxVelocity, Math.min(cameraMotion.panMaxVelocity, nativeWorldVel.z * gain)),
+          a: Math.max(
+            -cameraMotion.panMaxVelocity,
+            Math.min(cameraMotion.panMaxVelocity, nativeWorldVel.x * gain),
+          ),
+          b: Math.max(
+            -cameraMotion.panMaxVelocity,
+            Math.min(cameraMotion.panMaxVelocity, nativeWorldVel.z * gain),
+          ),
         };
       }
 
@@ -266,14 +272,14 @@ function SurfaceOrbitControlsComponent({ children }: SurfaceOrbitControlsProps):
         }
         return [{ id: object.id, cell: object.cell }];
       });
-      const picked = pickNearestFire(hit, fires);
+      const picked = pickNearestObject(hit, fires);
       if (picked === null) {
         return;
       }
 
       select(picked.id);
       const world = cellToWorld(picked.cell);
-      camera.startFocusTour({ x: world.x, y: 0, z: world.z }, fireYawRadians(picked.id), {
+      camera.startFocusTour({ x: world.x, y: 0, z: world.z }, objectYawRadians(picked.id), {
         mode: 'inspect',
       });
     },

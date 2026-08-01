@@ -9,7 +9,7 @@ import {
   focusTourTotalSeconds,
 } from '@/scene/camera/focusTour';
 import { lerpTarget, targetDistance } from '@/scene/camera/recenter';
-import { orbitAzimuthFacing } from '@/scene/surface-objects/fire';
+import { orbitAzimuthFacing } from '@/scene/objects/core/objectFacing';
 
 export type OrbitTarget = {
   readonly x: number;
@@ -255,7 +255,8 @@ export const useCameraStore = create<CameraState>()((set, get) => ({
     const { orbit, defaultDistance } = get();
     const { spawn } = surfaceObjectMotion;
     const inspect = options?.mode === 'inspect';
-    // Sphere core — azimuth from yaw still uses local +X as the facing reference.
+    // Radially symmetric objects — azimuth from yaw still uses local +X as the
+    // facing reference, so framing stays deterministic.
     const focusAzimuth = orbitAzimuthFacing(faceYaw);
     const tour: FocusTourState = {
       focusTarget: { ...focusTarget },
