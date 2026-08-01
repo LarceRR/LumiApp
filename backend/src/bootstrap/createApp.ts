@@ -8,10 +8,7 @@ import { APP_CONFIG, type AppConfig } from '@/config/env';
 
 import { setupSwagger } from './swagger';
 
-/**
- * Fastify adapter (Express is explicitly out), native `ws` for realtime, and a
- * global `/v1` prefix so a future breaking change can live side by side.
- */
+/** Fastify API bootstrap with HTTP, WebSocket and health endpoints. */
 export async function createApp(): Promise<{
   app: NestFastifyApplication;
   config: AppConfig;
@@ -39,9 +36,9 @@ export async function createApp(): Promise<{
     credentials: true,
   });
 
-  // Swagger UI requires the optional @fastify/static peer dependency. Keep the
-  // API bootable in the minimal production image; enable docs explicitly only
-  // in an image that installs that peer.
+  // @fastify/static is an optional peer of the Swagger/Fastify integration.
+  // The API must not die before auth routes are reachable just because docs UI
+  // is unavailable in the minimal production image.
   if (process.env.ENABLE_SWAGGER === 'true') {
     setupSwagger(app, config);
   }
