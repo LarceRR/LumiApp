@@ -2,6 +2,7 @@ import { forwardRef, Module } from '@nestjs/common';
 
 import { SpacesModule } from '@/modules/spaces/spaces.module';
 import { SurfacesModule } from '@/modules/surfaces/surfaces.module';
+import { CLOCK, systemClock } from '@/shared/utils/clock';
 import { cryptoRandomSource, RANDOM_SOURCE } from '@/shared/utils/random';
 
 import { ChangeSurfaceObjectStateHandler } from './application/commands/changeSurfaceObjectState.handler';
@@ -18,6 +19,7 @@ import { SurfaceObjectsController } from './presentation/controllers/surfaceObje
   providers: [
     { provide: SURFACE_OBJECT_REPOSITORY, useClass: DrizzleSurfaceObjectRepository },
     { provide: RANDOM_SOURCE, useValue: cryptoRandomSource },
+    { provide: CLOCK, useValue: systemClock },
     CreateSurfaceObjectHandler,
     ChangeSurfaceObjectStateHandler,
     UpdateSurfaceObjectHandler,

@@ -12,11 +12,7 @@ import { useRealtimeStore } from './realtimeStore';
 
 const SUBSCRIBED_CHANNELS = ['scene', 'timeline', 'notifications', 'presence'] as const;
 
-/**
- * Subscribes the active space to the realtime gateway and applies incoming
- * changes. Realtime patches the scene store for instant feedback and invalidates
- * the query so HTTP — the source of truth — reconciles right after.
- */
+/** Subscribes the active space and applies gateway events; HTTP remains authoritative. */
 export function useRealtimeSync(spaceId: SpaceId | null): void {
   const { realtime, logger } = useServices();
   const queryClient = useQueryClient();
@@ -34,30 +30,28 @@ export function useRealtimeSync(spaceId: SpaceId | null): void {
     });
 
     const unsubscribeMessages = realtime.onMessage((message) => {
-      if (message.spaceId !== spaceId) {
+      if ('spaceId' in message && message.spaceId !== spaceId) {
         return;
       }
 
       try {
         switch (message.type) {
-          case 'SurfaceObjectCreated':
-          case 'SurfaceObjectUpdated':
-            store.upsert(toSurfaceObject(message.payload));
+          case 'surfaceObject.created':
+          case 'surfaceObject.updated':
+            store.upsert(toSurfaceObject(message.object));
             break;
-          case 'SurfaceObjectDeleted':
-            store.remove(surfaceObjectId(message.payload.id));
+          case 'surfaceObject.deleted':
+            store.remove(surfaceObjectId(message.objectId));
             break;
-          case 'SurfaceUpdated':
-            void queryClient.invalidateQueries({ queryKey: queryKeys.surface(spaceId) });
-            break;
-          case 'TimelineUpdated':
+          case 'timeline.appended':
             void queryClient.invalidateQueries({ queryKey: queryKeys.timeline(spaceId) });
             break;
-          case 'SpaceUpdated':
-            void queryClient.invalidateQueries({ queryKey: queryKeys.spaces() });
+          case 'presence.changed':
+            realtimeStore.setPresence(message.userIds);
             break;
-          case 'PresenceChanged':
-            realtimeStore.setPresence(message.payload.userIds);
+          case 'subscribed':
+          case 'pong':
+          case 'error':
             break;
           default:
             break;

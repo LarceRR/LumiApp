@@ -13,18 +13,13 @@
    - физический телефон: `http://<LAN-IP-компьютера>:3000/v1`
 3. Запусти Expo с чистым конфигом: `npx expo start -c`.
 
-Expo читает `EXPO_PUBLIC_API_BASE_URL` через `app.config.js`. Если адрес не задан,
-по умолчанию используется iOS Simulator URL, а не локальный sandbox. Sandbox
-остаётся доступен только когда `apiBaseUrl` явно отсутствует в runtime-конфиге.
+Expo читает `EXPO_PUBLIC_API_BASE_URL` через `app.config.js` и автоматически
+строит WebSocket endpoint `/realtime`. Его можно переопределить через
+`EXPO_PUBLIC_WEBSOCKET_URL`. Backend HTTP использует глобальный prefix `/v1`, а
+health endpoint остаётся на `http://<host>:3000/health`.
 
-Backend HTTP использует глобальный prefix `/v1`, поэтому не убирай его из URL.
-Проверка контейнера: `curl http://localhost:3000/health`.
-
-Realtime пока не включается автоматически: backend подключает `WsAdapter`, но в
-репозитории нет WebSocket gateway. Не задавай `EXPO_PUBLIC_WEBSOCKET_URL`, пока
-gateway не будет добавлен, иначе клиент будет бесконечно переподключаться. HTTP
-остаётся источником истины и уже полностью покрывает auth, spaces, surfaces,
-objects и timeline.
+Для Android Emulator используй именно `10.0.2.2`, а для физического телефона
+LAN IP компьютера. `localhost` на телефоне указывает на сам телефон, не на API.
 
 ## Команды
 
@@ -33,4 +28,6 @@ objects и timeline.
 - `npm run ios` — запуск iOS
 - `npm run verify` — типы, линтер, тесты
 
-Без настроенного API приложение работает локально через `src/infrastructure/local`.
+Без `EXPO_PUBLIC_API_BASE_URL` приложение использует локальный sandbox. Backend
+realtime gateway активен на `/realtime`, HTTP остаётся источником истины, а
+WebSocket доставляет изменения между клиентами.

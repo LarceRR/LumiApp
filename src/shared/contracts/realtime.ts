@@ -6,47 +6,33 @@ import type { TimelineEventDto } from './timeline';
 export type RealtimeChannel = 'scene' | 'timeline' | 'notifications' | 'presence';
 
 export type RealtimeServerMessageDto =
+  | { readonly type: 'pong' }
+  | { readonly type: 'subscribed'; readonly spaceId: string }
+  | { readonly type: 'error'; readonly message: string }
   | {
-      readonly channel: 'scene';
-      readonly type: 'SurfaceObjectCreated';
+      readonly type: 'surfaceObject.created';
       readonly spaceId: string;
-      readonly payload: SurfaceObjectDto;
+      readonly object: SurfaceObjectDto;
     }
   | {
-      readonly channel: 'scene';
-      readonly type: 'SurfaceObjectUpdated';
+      readonly type: 'surfaceObject.updated';
       readonly spaceId: string;
-      readonly payload: SurfaceObjectDto;
+      readonly object: SurfaceObjectDto;
     }
   | {
-      readonly channel: 'scene';
-      readonly type: 'SurfaceObjectDeleted';
+      readonly type: 'surfaceObject.deleted';
       readonly spaceId: string;
-      readonly payload: { readonly id: string; readonly version: number };
+      readonly objectId: string;
     }
   | {
-      readonly channel: 'scene';
-      readonly type: 'SurfaceUpdated';
+      readonly type: 'timeline.appended';
       readonly spaceId: string;
-      readonly payload: SurfaceDto;
+      readonly event: TimelineEventDto;
     }
   | {
-      readonly channel: 'timeline';
-      readonly type: 'TimelineUpdated';
+      readonly type: 'presence.changed';
       readonly spaceId: string;
-      readonly payload: TimelineEventDto;
-    }
-  | {
-      readonly channel: 'notifications';
-      readonly type: 'SpaceUpdated';
-      readonly spaceId: string;
-      readonly payload: SpaceDto;
-    }
-  | {
-      readonly channel: 'presence';
-      readonly type: 'PresenceChanged';
-      readonly spaceId: string;
-      readonly payload: { readonly userIds: readonly string[] };
+      readonly userIds: readonly string[];
     };
 
 export type RealtimeClientMessageDto =
