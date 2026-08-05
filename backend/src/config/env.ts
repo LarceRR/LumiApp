@@ -1,5 +1,8 @@
 import { z } from 'zod';
 
+// Первым делом: `.env` должен оказаться в process.env до того, как его кто-то прочитает.
+import { loadedEnvFiles } from './load-env';
+
 const secondsFromString = z.coerce.number().int().positive();
 
 /**
@@ -101,7 +104,7 @@ export function loadConfig(source: NodeJS.ProcessEnv = process.env): AppConfig {
       .map((issue) => `${issue.path.join('.')}: ${issue.message}`)
       .join('\n  ');
 
-    throw new Error(`Некорректная конфигурация окружения:\n  ${details}`);
+    throw new Error(`Некорректная конфигурация окружения:\n  ${details}\n\n${envSourceHint()}`);
   }
 
   const env = parsed.data;
@@ -146,4 +149,16 @@ export function loadConfig(source: NodeJS.ProcessEnv = process.env): AppConfig {
       ageAfterHours: env.SURFACE_AGE_AFTER_HOURS,
     },
   };
+}
+
+/**半 самая частая причина падения — не найденный .env. Скажем об этом прямо. */
+function envSourceHint(): string {
+  if (loadedEnvFiles.length > 0) {
+    return `Прочитаны env-файлы: ${loadedEnvFiles.join(', ')}`;
+  }
+
+  return [
+    'Файл .env не найден — использованы только переменные процесса.',
+    'Создайте backend/.env: `copy .env.example .env` (Windows) или `cp .env.example .env`.',
+  ].join('\n');
 }

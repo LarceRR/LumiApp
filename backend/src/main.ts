@@ -1,5 +1,8 @@
 import 'reflect-metadata';
 
+// До остальных импортов: модули могут читать process.env уже при загрузке.
+import '@/config/load-env';
+
 import { createApp } from '@/bootstrap/createApp';
 import { loadConfig } from '@/config/env';
 import { initSentry } from '@/infrastructure/sentry/sentry';
