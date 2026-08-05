@@ -11,17 +11,20 @@ import { Text } from '@/design-system/components/Text/Text';
 import { icons } from '@/design-system/icons/icons';
 import { layout, spacing } from '@/design-system/spacing/spacing';
 import { useAuthStore } from '@/domains/auth/presentation/stores/authStore';
+import { useSettingsStore } from '@/domains/settings/presentation/stores/settingsStore';
 import { useSurfaceObjectActions } from '@/domains/surface-objects/presentation/hooks/useSurfaceObjectActions';
 import { useSurfaceObjectsStore } from '@/domains/surface-objects/presentation/stores/surfaceObjectsStore';
 import { useSurface } from '@/domains/surfaces/presentation/hooks/useSurface';
+import { selectIsSyncing, useRealtimeStore } from '@/infrastructure/realtime/realtimeStore';
 import { useRealtimeSync } from '@/infrastructure/realtime/useRealtimeSync';
 import { SceneView } from '@/scene/SceneView';
+import { useSceneStore } from '@/scene/stores/sceneStore';
 import { presentableKinds } from '@/scene/surface-objects/kindPresentation';
 
 import { hasPermission } from '../../domain/services/permissionService';
 import { CreateObjectSheet } from '../components/CreateObjectSheet';
+import { MemberAvatars } from '../components/MemberAvatars';
 import { ObjectDetailsSheet } from '../components/ObjectDetailsSheet';
-import { SpaceHeader } from '../components/SpaceHeader';
 import { useSpaces } from '../hooks/useSpaces';
 
 /**
@@ -48,6 +51,10 @@ export function SpaceScreen(): ReactElement {
   const sheet = useUiStore((state) => state.sheet);
   const openSheet = useUiStore((state) => state.openSheet);
   const closeSheet = useUiStore((state) => state.closeSheet);
+
+  const isSyncing = useRealtimeStore(selectIsSyncing);
+  const showOverlay = useSettingsStore((state) => state.showPerformanceOverlay);
+  const metrics = useSceneStore((state) => state.metrics);
 
   const [note, setNote] = useState('');
 
@@ -91,9 +98,21 @@ export function SpaceScreen(): ReactElement {
 
       <View
         pointerEvents="box-none"
-        style={[styles.header, { paddingTop: insets.top + spacing.sm }]}
+        style={[styles.topBar, { paddingTop: insets.top + spacing.sm }]}
       >
-        <SpaceHeader space={activeSpace} />
+        <View pointerEvents="none" style={styles.status}>
+          {showOverlay ? (
+            <Text variant="caption" numberOfLines={1}>
+              {`${metrics.fps} fps · ${metrics.drawCalls} draw · ${metrics.triangles} tri`}
+            </Text>
+          ) : null}
+          {isSyncing ? (
+            <Text variant="caption" numberOfLines={1}>
+              Синхронизация
+            </Text>
+          ) : null}
+        </View>
+        <MemberAvatars space={activeSpace} currentUserId={currentUserId} />
       </View>
 
       {isBusy ? (
@@ -164,11 +183,19 @@ const styles = StyleSheet.create({
   scene: {
     ...StyleSheet.absoluteFillObject,
   },
-  header: {
+  topBar: {
     position: 'absolute',
     left: layout.screenGutter,
     right: layout.screenGutter,
     top: 0,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+  },
+  status: {
+    flex: 1,
+    gap: spacing.xxs,
   },
   actionBar: {
     position: 'absolute',
