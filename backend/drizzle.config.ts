@@ -1,3 +1,6 @@
+// drizzle-kit — отдельный процесс, .env ему тоже нужен.
+import './src/config/load-env';
+
 import { defineConfig } from 'drizzle-kit';
 
 export default defineConfig({

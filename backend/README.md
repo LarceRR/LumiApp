@@ -6,7 +6,7 @@
 ## Запуск
 
 ```bash
-cp .env.example .env          # заполнить JWT-секреты
+cp .env.example .env          # copy .env.example .env — на Windows
 docker compose up -d postgres redis
 npm ci
 npm run db:migrate
@@ -29,6 +29,33 @@ API поднимется на `http://localhost:3000`:
 docker compose up --build
 ```
 
+## Конфигурация
+
+Единственное, что нужно сделать руками, — создать `backend/.env`. Дальше ничего
+экспортировать не надо: `src/config/load-env.ts` читает файл сам и делает это до
+валидации конфига, поэтому `npm run dev`, `npm start`, `npm run db:migrate`,
+`npm run db:seed` и `drizzle-kit` видят одни и те же переменные.
+
+Правила простые:
+
+- **Переменные процесса сильнее файла.** `set PORT=4000 && npm run dev` (cmd) или
+  `$env:PORT=4000` (PowerShell) перебивают `.env` — Docker и CI ничего не теряют.
+- **`.env.local` сильнее `.env`.** Личные секреты держите в нём, он в `.gitignore`.
+- **Файл ищется вверх** от рабочей директории и от самого модуля, но не выше
+  ближайшего `package.json`. Запускать можно и из `backend/`, и из корня репозитория.
+- **CRLF и BOM срезаются.** Блокнот и другие Windows-редакторы больше не приклеят
+  `\r` к `REDIS_URL` — раньше это ломало подключение без внятной ошибки.
+
+Если переменных всё-таки не хватает, процесс падает на старте и в сообщении
+перечисляет, чего не хватило и какие env-файлы он прочитал.
+
+### Postgres и Redis в Docker, сервер локально
+
+Рабочий сценарий: `docker compose up -d postgres redis` поднимает только
+зависимости, порты проброшены на хост, поэтому в `.env` идут `localhost`-адреса из
+`.env.example`. Сервис `api` из `docker-compose.yml` при этом не нужен — он ходит в
+базу по внутренним именам `postgres` и `redis`.
+
 ## Команды
 
 | Команда               | Назначение                                    |
@@ -48,7 +75,7 @@ docker compose up --build
 src/
   app/            композиционный корень (AppModule, health)
   bootstrap/      создание приложения, Swagger
-  config/         env-переменные, провалидированные Zod при старте
+  config/         чтение .env и env-переменные, провалидированные Zod при старте
   database/       схема Drizzle, миграции, seed
   infrastructure/ Redis, BullMQ, S3-совместимое хранилище, Sentry
   modules/        <контекст>/{domain,application,infrastructure,presentation}
