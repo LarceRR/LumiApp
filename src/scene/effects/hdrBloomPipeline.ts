@@ -12,6 +12,7 @@ import {
   RGBAFormat,
   Scene,
   ShaderMaterial,
+  type Texture,
   type TextureDataType,
   UnsignedByteType,
   Vector2,
@@ -22,11 +23,11 @@ import {
 import { BLOOM_MAX_MIPS, BLOOM_SHOULDER, BLOOM_SOFT_KNEE, bloomMipWeights } from './bloomTuning';
 
 export type BloomInput = {
-  /** How much of the blurred overbright signal is added back. */
+  /** How much of the blurred overbright signal is added back. 0 turns it off. */
   readonly strength: number;
   /** 0 — tight hot halo, 1 — wide soft glow. */
   readonly radius: number;
-  /** Luminance a pixel needs before it starts to bloom. Above 1 = HDR only. */
+  /** Luminance a pixel needs before it blooms. Above 1 = overbright only. */
   readonly threshold: number;
   readonly exposure: number;
 };
@@ -56,8 +57,8 @@ const fullscreenVertex = /* glsl */ `
 
 /**
  * Soft-knee bright pass with a 4-tap box downsample. The box tap is not
- * cosmetic: a single voxel of fire is a couple of pixels wide and would
- * otherwise crawl through the mip chain as a firefly.
+ * cosmetic: one voxel of fire is a couple of pixels wide and would otherwise
+ * crawl through the mip chain as a firefly.
  */
 const brightFragment = /* glsl */ `
   uniform sampler2D uTexture;
@@ -94,12 +95,12 @@ const blurFragment = /* glsl */ `
   varying vec2 vUv;
 
   void main() {
-    vec2 step = uTexelSize * uDirection;
+    vec2 offset = uTexelSize * uDirection;
     vec3 color = texture2D(uTexture, vUv).rgb * 0.227027;
-    color += texture2D(uTexture, vUv + step * 1.384615).rgb * 0.316216;
-    color += texture2D(uTexture, vUv - step * 1.384615).rgb * 0.316216;
-    color += texture2D(uTexture, vUv + step * 3.230769).rgb * 0.070270;
-    color += texture2D(uTexture, vUv - step * 3.230769).rgb * 0.070270;
+    color += texture2D(uTexture, vUv + offset * 1.384615).rgb * 0.316216;
+    color += texture2D(uTexture, vUv - offset * 1.384615).rgb * 0.316216;
+    color += texture2D(uTexture, vUv + offset * 3.230769).rgb * 0.070270;
+    color += texture2D(uTexture, vUv - offset * 3.230769).rgb * 0.070270;
 
     gl_FragColor = vec4(color, 1.0);
   }
@@ -126,8 +127,8 @@ ${samplers}
 
   // Highlights only. Below the shoulder the frame passes through untouched, so
   // the surface and the UI keep their exact colour; above it the curve rolls
-  // off to 1.0 instead of clipping. That is what turns overbright fire into a
-  // white-hot core with a real falloff instead of a flat white blob.
+  // off towards 1.0 instead of clipping. That is what turns overbright fire
+  // into a white-hot core with a real falloff instead of a flat white blob.
   vec3 rollOff(vec3 color) {
     float span = max(1.0 - uShoulder, 1e-4);
     vec3 low = min(color, vec3(uShoulder));
@@ -136,8 +137,8 @@ ${samplers}
     return low + span * (vec3(1.0) - exp(-high / span));
   }
 
-  // The scene target is linear, so the sRGB transfer that three normally does
-  // when it draws straight to the canvas has to happen here.
+  // The scene target is linear, so the sRGB transfer three normally applies
+  // when it draws straight to the canvas has to happen here instead.
   vec3 linearToSRGB(vec3 color) {
     vec3 c = clamp(color, 0.0, 1.0);
     vec3 lower = c * 12.92;
@@ -185,8 +186,8 @@ function createColorTarget(
 
 /**
  * Asks the driver instead of guessing. Half-float colour buffers and
- * multisampled targets are both optional on mobile GL, and a silently
- * incomplete framebuffer renders nothing at all.
+ * multisampled targets are both optional on mobile GL, and an incomplete
+ * framebuffer fails silently — it just renders nothing at all.
  */
 function isTargetComplete(renderer: WebGLRenderer, target: WebGLRenderTarget): boolean {
   const previous = renderer.getRenderTarget();
@@ -209,14 +210,14 @@ function preferredType(renderer: WebGLRenderer): TextureDataType {
 }
 
 /**
- * Threshold bloom over an HDR frame, the UnrealBloomPass recipe rebuilt on the
- * plain WebGLRenderer that react-three-fiber/native already owns:
+ * Threshold bloom over an HDR frame — the UnrealBloomPass recipe, rebuilt on
+ * the plain WebGLRenderer that react-three-fiber/native already owns:
  *
- *   scene -> HDR target -> bright pass -> blur pyramid -> composite -> screen
+ *   scene → HDR target → bright pass → blur pyramid → composite → screen
  *
  * No EffectComposer (its examples build is web-only) and no billboard fake:
- * every pass is a real render target, and the fire glows because its emission
- * genuinely exceeds 1.0, not because a sprite is pasted underneath it.
+ * every step is a real render target, and the fire glows because its emission
+ * genuinely exceeds 1.0 — not because a sprite is pasted underneath it.
  */
 export class HdrBloomPipeline {
   private readonly mipCount: number;
@@ -227,6 +228,19 @@ export class HdrBloomPipeline {
   private readonly brightMaterial: ShaderMaterial;
   private readonly blurMaterial: ShaderMaterial;
   private readonly compositeMaterial: ShaderMaterial;
+
+  private readonly brightTexture: IUniform<Texture | null> = { value: null };
+  private readonly brightTexel: IUniform<Vector2> = { value: new Vector2(1, 1) };
+  private readonly brightThreshold: IUniform<number> = { value: 1 };
+  private readonly blurTexture: IUniform<Texture | null> = { value: null };
+  private readonly blurTexel: IUniform<Vector2> = { value: new Vector2(1, 1) };
+  private readonly blurDirection: IUniform<Vector2> = { value: new Vector2(1, 0) };
+  private readonly sceneTexture: IUniform<Texture | null> = { value: null };
+  private readonly strength: IUniform<number> = { value: 0 };
+  private readonly exposure: IUniform<number> = { value: 1 };
+  private readonly mipTextures: IUniform<Texture | null>[] = [];
+  private readonly mipWeights: IUniform<number>[] = [];
+
   private readonly bufferSize = new Vector2();
   private readonly mips: MipChain[] = [];
 
@@ -242,12 +256,29 @@ export class HdrBloomPipeline {
     this.mipCount = Math.max(1, Math.min(Math.floor(options.mips), BLOOM_MAX_MIPS));
     this.samples = Math.max(0, Math.floor(options.samples));
 
+    const compositeUniforms: Record<string, IUniform> = {
+      uScene: this.sceneTexture,
+      uStrength: this.strength,
+      uExposure: this.exposure,
+      uShoulder: { value: BLOOM_SHOULDER },
+    };
+
+    for (let index = 0; index < this.mipCount; index += 1) {
+      const texture: IUniform<Texture | null> = { value: null };
+      const weight: IUniform<number> = { value: 0 };
+
+      this.mipTextures.push(texture);
+      this.mipWeights.push(weight);
+      compositeUniforms[`uMip${index}`] = texture;
+      compositeUniforms[`uWeight${index}`] = weight;
+    }
+
     this.geometry = new PlaneGeometry(2, 2);
     this.brightMaterial = new ShaderMaterial({
       uniforms: {
-        uTexture: { value: null },
-        uTexelSize: { value: new Vector2(1, 1) },
-        uThreshold: { value: 1 },
+        uTexture: this.brightTexture,
+        uTexelSize: this.brightTexel,
+        uThreshold: this.brightThreshold,
         uSoftKnee: { value: BLOOM_SOFT_KNEE },
       },
       vertexShader: fullscreenVertex,
@@ -258,9 +289,9 @@ export class HdrBloomPipeline {
     });
     this.blurMaterial = new ShaderMaterial({
       uniforms: {
-        uTexture: { value: null },
-        uTexelSize: { value: new Vector2(1, 1) },
-        uDirection: { value: new Vector2(1, 0) },
+        uTexture: this.blurTexture,
+        uTexelSize: this.blurTexel,
+        uDirection: this.blurDirection,
       },
       vertexShader: fullscreenVertex,
       fragmentShader: blurFragment,
@@ -269,7 +300,7 @@ export class HdrBloomPipeline {
       depthWrite: false,
     });
     this.compositeMaterial = new ShaderMaterial({
-      uniforms: this.createCompositeUniforms(),
+      uniforms: compositeUniforms,
       vertexShader: fullscreenVertex,
       fragmentShader: compositeFragment(this.mipCount),
       blending: NoBlending,
@@ -282,11 +313,6 @@ export class HdrBloomPipeline {
     this.quadScene = new Scene();
     this.quadScene.add(this.quad);
     this.quadCamera = new OrthographicCamera(-1, 1, 1, -1, 0, 1);
-  }
-
-  /** True once the device has been proven unable to render into a target. */
-  get disabled(): boolean {
-    return this.unsupported;
   }
 
   render(renderer: WebGLRenderer, scene: Scene, camera: Camera, input: BloomInput): void {
@@ -321,8 +347,8 @@ export class HdrBloomPipeline {
         this.renderBloom(renderer, target, input);
       }
 
-      this.compositeMaterial.uniforms.uStrength.value = strength;
-      this.compositeMaterial.uniforms.uExposure.value = Math.max(0, input.exposure);
+      this.strength.value = strength;
+      this.exposure.value = Math.max(0, input.exposure);
       this.draw(renderer, this.compositeMaterial, null);
     } finally {
       renderer.autoClear = previousAutoClear;
@@ -332,27 +358,11 @@ export class HdrBloomPipeline {
 
   dispose(): void {
     this.releaseTargets();
+    this.quadScene.remove(this.quad);
     this.geometry.dispose();
     this.brightMaterial.dispose();
     this.blurMaterial.dispose();
     this.compositeMaterial.dispose();
-    this.quadScene.remove(this.quad);
-  }
-
-  private createCompositeUniforms(): Record<string, IUniform> {
-    const uniforms: Record<string, IUniform> = {
-      uScene: { value: null },
-      uStrength: { value: 0 },
-      uExposure: { value: 1 },
-      uShoulder: { value: BLOOM_SHOULDER },
-    };
-
-    for (let index = 0; index < this.mipCount; index += 1) {
-      uniforms[`uMip${index}`] = { value: null };
-      uniforms[`uWeight${index}`] = { value: 0 };
-    }
-
-    return uniforms;
   }
 
   private renderBloom(
@@ -366,16 +376,13 @@ export class HdrBloomPipeline {
       return;
     }
 
-    this.brightMaterial.uniforms.uTexture.value = sceneTarget.texture;
-    this.brightMaterial.uniforms.uThreshold.value = Math.max(0, input.threshold);
-    this.brightMaterial.uniforms.uTexelSize.value.set(
-      1 / sceneTarget.width,
-      1 / sceneTarget.height,
-    );
+    this.brightTexture.value = sceneTarget.texture;
+    this.brightThreshold.value = Math.max(0, input.threshold);
+    this.brightTexel.value.set(1 / sceneTarget.width, 1 / sceneTarget.height);
     this.draw(renderer, this.brightMaterial, bright);
 
     const weights = bloomMipWeights(input.radius, this.mips.length);
-    let source = bright.texture;
+    let source: Texture = bright.texture;
 
     for (let index = 0; index < this.mips.length; index += 1) {
       const mip = this.mips[index];
@@ -386,21 +393,18 @@ export class HdrBloomPipeline {
 
       // The kernel walks in destination texels, so every level both halves the
       // resolution and widens the blur — that is where the wide halo comes from.
-      this.blurMaterial.uniforms.uTexelSize.value.set(
-        1 / mip.output.width,
-        1 / mip.output.height,
-      );
-      this.blurMaterial.uniforms.uTexture.value = source;
-      this.blurMaterial.uniforms.uDirection.value.set(1, 0);
+      this.blurTexel.value.set(1 / mip.output.width, 1 / mip.output.height);
+      this.blurTexture.value = source;
+      this.blurDirection.value.set(1, 0);
       this.draw(renderer, this.blurMaterial, mip.blur);
 
-      this.blurMaterial.uniforms.uTexture.value = mip.blur.texture;
-      this.blurMaterial.uniforms.uDirection.value.set(0, 1);
+      this.blurTexture.value = mip.blur.texture;
+      this.blurDirection.value.set(0, 1);
       this.draw(renderer, this.blurMaterial, mip.output);
 
       source = mip.output.texture;
 
-      const weight = this.compositeMaterial.uniforms[`uWeight${index}`];
+      const weight = this.mipWeights[index];
 
       if (weight !== undefined) {
         weight.value = weights[index] ?? 0;
@@ -427,8 +431,10 @@ export class HdrBloomPipeline {
       return null;
     }
 
-    if (this.sceneTarget !== null && this.width === width && this.height === height) {
-      return this.sceneTarget;
+    const current = this.sceneTarget;
+
+    if (current !== null && this.width === width && this.height === height) {
+      return current;
     }
 
     this.releaseTargets();
@@ -446,8 +452,8 @@ export class HdrBloomPipeline {
     const type = this.textureType ?? UnsignedByteType;
 
     this.sceneTarget = sceneTarget;
+    this.sceneTexture.value = sceneTarget.texture;
     this.brightTarget = createColorTarget(width >> 1, height >> 1, type, false, 0);
-    this.compositeMaterial.uniforms.uScene.value = sceneTarget.texture;
 
     for (let index = 0; index < this.mipCount; index += 1) {
       const mipWidth = Math.max(1, width >> (index + 1));
@@ -459,10 +465,10 @@ export class HdrBloomPipeline {
 
       this.mips.push(mip);
 
-      const sampler = this.compositeMaterial.uniforms[`uMip${index}`];
+      const texture = this.mipTextures[index];
 
-      if (sampler !== undefined) {
-        sampler.value = mip.output.texture;
+      if (texture !== undefined) {
+        texture.value = mip.output.texture;
       }
     }
 
@@ -470,7 +476,7 @@ export class HdrBloomPipeline {
   }
 
   /**
-   * Half-float first, MSAA first, and a real completeness check between every
+   * Half-float first, MSAA first, with a real completeness check between every
    * step down. Whatever the device actually supports is what gets used.
    */
   private createSceneTarget(
@@ -516,6 +522,7 @@ export class HdrBloomPipeline {
     this.brightTarget?.dispose();
     this.sceneTarget = null;
     this.brightTarget = null;
+    this.sceneTexture.value = null;
 
     for (const mip of this.mips) {
       mip.blur.dispose();
@@ -523,5 +530,9 @@ export class HdrBloomPipeline {
     }
 
     this.mips.length = 0;
+
+    for (const texture of this.mipTextures) {
+      texture.value = null;
+    }
   }
 }

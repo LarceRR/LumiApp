@@ -2,7 +2,6 @@ import { useFrame, useThree } from '@react-three/fiber/native';
 import { useEffect, useMemo } from 'react';
 import type { WebGLRenderer } from 'three';
 
-import { FIRE_BLOOM_DEFAULTS } from '@/scene/objects/fire/fireSettings';
 import { useFireSettingsStore } from '@/scene/objects/fire/fireSettingsStore';
 import { useSceneStore } from '@/scene/stores/sceneStore';
 
@@ -10,7 +9,7 @@ import { BLOOM_MIPS, BLOOM_SAMPLES } from './bloomTuning';
 import { HdrBloomPipeline } from './hdrBloomPipeline';
 
 /**
- * Owns the frame. Mounted inside a Canvas it takes over rendering entirely
+ * Owns the frame. Mounted inside a Canvas it takes rendering over entirely
  * (useFrame priority > 0 switches react-three-fiber's own render off), pushes
  * the scene through the HDR bloom pipeline and puts the tone-mapped result on
  * screen.
@@ -26,20 +25,14 @@ export function FireBloom(): null {
   const antialias = useSceneStore((state) => state.quality.antialias);
 
   const pipeline = useMemo(
-    () =>
-      new HdrBloomPipeline({
-        mips: BLOOM_MIPS[tier],
-        samples: antialias ? BLOOM_SAMPLES : 0,
-      }),
+    () => new HdrBloomPipeline({ mips: BLOOM_MIPS[tier], samples: antialias ? BLOOM_SAMPLES : 0 }),
     [tier, antialias],
   );
 
   useEffect(() => () => pipeline.dispose(), [pipeline]);
 
   useFrame(() => {
-    const bloom = useFireSettingsStore.getState().settings.bloom ?? FIRE_BLOOM_DEFAULTS;
-
-    pipeline.render(renderer, scene, camera, bloom);
+    pipeline.render(renderer, scene, camera, useFireSettingsStore.getState().settings.bloom);
   }, 1);
 
   return null;

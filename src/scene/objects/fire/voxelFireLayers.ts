@@ -39,9 +39,6 @@ function createLayerMesh(material: ShaderMaterial, capacity: number): InstancedM
   mesh.frustumCulled = false;
   mesh.count = 0;
   mesh.instanceMatrix.setUsage(DynamicDrawUsage);
-  // Layer 1 is rendered into the bloom source; layer 0 remains enabled so the
-  // same fire is still present in the normal scene pass.
-  mesh.layers.enable(1);
 
   return mesh;
 }

@@ -1,6 +1,8 @@
 import { useFrame, useThree } from '@react-three/fiber/native';
 import { memo, type ReactElement, useEffect, useMemo } from 'react';
 
+import { FireBloom } from '@/scene/effects/FireBloom';
+
 import type { ObjectPreviewProps } from '../core/SurfaceObjectDefinition';
 import { VoxelFireEmitter } from './fireEmitter';
 import { useFireSettingsStore } from './fireSettingsStore';
@@ -18,7 +20,9 @@ const LOOK_AT_HEIGHT = 0.4;
  * One fire, alone, always burning — the settings sheet preview.
  *
  * The camera orbits the fire instead of the fire spinning, so the colour ramp
- * (driven by world height) stays exactly as it looks on the surface.
+ * (driven by world height) stays exactly as it looks on the surface. Same bloom
+ * pass as the surface too: the sliders show the real thing, not an
+ * approximation of it.
  */
 function VoxelFirePreviewComponent({ yawRef }: ObjectPreviewProps): ReactElement {
   const camera = useThree((state) => state.camera);
@@ -57,6 +61,7 @@ function VoxelFirePreviewComponent({ yawRef }: ObjectPreviewProps): ReactElement
     <>
       <primitive object={layers.emberMesh} />
       <primitive object={layers.flameMesh} />
+      <FireBloom />
     </>
   );
 }
