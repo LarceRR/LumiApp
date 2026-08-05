@@ -1,4 +1,4 @@
-import { AdditiveBlending, Color, DoubleSide, ShaderMaterial, type Texture } from 'three';
+import { Color, DoubleSide, NormalBlending, ShaderMaterial, type Texture } from 'three';
 
 import type { FireLayerSettings, FireSettings } from './fireSettings';
 
@@ -42,13 +42,18 @@ const fragmentShader = /* glsl */ `
 
     float bottomFade = uBottomRound > 0.0 ? smoothstep(0.0, uBottomRound, vHeight) : 1.0;
 
-    gl_FragColor = vec4(color * intensity * bottomFade * vAlpha, 1.0);
+    float energy = intensity * bottomFade * vAlpha;
+
+    // Premultiplied alpha вместо чистого additive: rgb несёт энергию (она бывает
+    // больше единицы и на тёмном фоне работает как свечение), а alpha закрывает
+    // фон — иначе на белой поверхности складывать нечего и огонь пропадает.
+    gl_FragColor = vec4(color * energy, clamp(energy, 0.0, 1.0));
   }
 `;
 
 /**
- * Additive, unlit, depth-write-free — the voxel cubes are pure emission and
- * must never occlude each other.
+ * Unlit, depth-write-free, premultiplied — воксельные кубы это чистая эмиссия:
+ * внешний свет на них не влияет и друг друга они не перекрывают.
  */
 export function createVoxelFireMaterial(noise: Texture): ShaderMaterial {
   return new ShaderMaterial({
@@ -65,8 +70,9 @@ export function createVoxelFireMaterial(noise: Texture): ShaderMaterial {
     side: DoubleSide,
     transparent: true,
     depthWrite: false,
-    blending: AdditiveBlending,
-    toneMapped: true,
+    blending: NormalBlending,
+    premultipliedAlpha: true,
+    toneMapped: false,
   });
 }
 

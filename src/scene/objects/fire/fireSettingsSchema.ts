@@ -42,9 +42,13 @@ export const fireSettingsSchema: SettingsSchema = [
     numberField('wind.minHeight', 'Нижняя граница', -1, 3, 0.1),
     numberField('wind.maxHeight', 'Верхняя граница', 0, 5, 0.1),
   ]),
+  // Порога тут нет намеренно: он относится к постпроцессному bloom, которого
+  // на react-native нет. Ореол рисуется билбордом и слушает только эти ручки.
   settingsGroup('bloom', 'Свечение', [
-    numberField('bloom.strength', 'Сила', 0, 2, 0.01),
-    numberField('bloom.radius', 'Радиус', 0, 1, 0.01),
-    numberField('bloom.threshold', 'Порог', 0, 1, 0.01),
+    numberField('bloom.strength', 'Сила', 0, 3, 0.05),
+    numberField('bloom.radius', 'Радиус', 0.2, 4, 0.05),
+    numberField('bloom.softness', 'Плотность ядра', 0.5, 6, 0.1),
+    numberField('bloom.height', 'Высота центра', 0, 3, 0.05),
+    colorField('bloom.color', 'Цвет свечения'),
   ]),
 ];
