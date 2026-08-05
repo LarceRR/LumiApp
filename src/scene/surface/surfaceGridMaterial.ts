@@ -1,6 +1,7 @@
 import { Color, DoubleSide, ShaderMaterial, Vector2 } from 'three';
 
 import { SURFACE_CELL_WORLD_SIZE, surfaceVisual } from './constants';
+import { gridColorFor } from './surfaceTheme';
 
 const vertexShader = /* glsl */ `
   varying vec3 vWorldPosition;
@@ -61,7 +62,7 @@ const fragmentShader = /* glsl */ `
   }
 `;
 
-/** White surface with gray grid lines and first/last cell tints. */
+/** Surface fill with grid lines and optional first/last cell tints. */
 export function createSurfaceGridMaterial(): ShaderMaterial {
   return new ShaderMaterial({
     uniforms: {
@@ -87,6 +88,31 @@ export function createSurfaceGridMaterial(): ShaderMaterial {
 }
 
 export type SurfaceGridMaterial = ReturnType<typeof createSurfaceGridMaterial>;
+
+/**
+ * Фон задаёт и заливку, и туман, и линии грида: иначе на тёмной поверхности
+ * сетка пропадала бы, а горизонт уходил бы в белую дымку.
+ */
+export function applySurfaceThemeUniforms(
+  material: SurfaceGridMaterial,
+  background: string,
+): void {
+  const fill = material.uniforms.fillColor?.value;
+  const fog = material.uniforms.fogColor?.value;
+  const grid = material.uniforms.gridColor?.value;
+
+  if (fill instanceof Color) {
+    fill.set(background);
+  }
+
+  if (fog instanceof Color) {
+    fog.set(background);
+  }
+
+  if (grid instanceof Color) {
+    grid.set(gridColorFor(background));
+  }
+}
 
 export function fogDistanceBounds(
   distance: number,

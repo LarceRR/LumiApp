@@ -41,7 +41,7 @@ function VoxelFirePreviewComponent({ yawRef }: ObjectPreviewProps): ReactElement
     emitter.update(Math.min(delta, MAX_FRAME_SECONDS) * fire.globalSpeed, fire);
 
     layers.begin();
-    layers.write(emitter, ORIGIN, fire.worldScale);
+    layers.write(emitter, ORIGIN, fire);
     layers.commit();
 
     yawRef.current += delta * SPIN_SPEED;
@@ -55,6 +55,7 @@ function VoxelFirePreviewComponent({ yawRef }: ObjectPreviewProps): ReactElement
 
   return (
     <>
+      <primitive object={layers.glowMesh} />
       <primitive object={layers.emberMesh} />
       <primitive object={layers.flameMesh} />
     </>

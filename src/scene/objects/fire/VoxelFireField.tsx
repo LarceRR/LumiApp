@@ -24,7 +24,7 @@ import { FIRE_LAYER_CAPACITY, VoxelFireLayers } from './voxelFireLayers';
 const MAX_FRAME_SECONDS = 0.05;
 
 /**
- * Every fire on the surface, drawn as two additive instanced layers.
+ * Every fire on the surface: два слоя воксельных частиц плюс билборд-ореол.
  *
  * Nothing here is loaded from disk: the fire is pure geometry + shader, tuned
  * live from the fire settings store. Objects that drift past the scene fog stop
@@ -120,7 +120,7 @@ function VoxelFireFieldComponent(): ReactElement {
       emitter.configure(fire, isFocused);
       emitter.update(playing ? simDelta : 0, fire);
 
-      layers.write(emitter, world, fire.worldScale);
+      layers.write(emitter, world, fire);
 
       if (isFocused) {
         focusWorld = world;
@@ -150,6 +150,7 @@ function VoxelFireFieldComponent(): ReactElement {
 
   return (
     <>
+      <primitive object={layers.glowMesh} />
       <primitive object={layers.emberMesh} />
       <primitive object={layers.flameMesh} />
       <pointLight

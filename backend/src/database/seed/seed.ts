@@ -132,7 +132,8 @@ async function seed(): Promise<void> {
 
       await db.insert(schema.timelineEvents).values({
         spaceId: space.id,
-        type: 'surfaceObject.created',
+        // Ровно то же значение, что пишет проекция в рантайме (TimelineEventType).
+        type: 'SurfaceObjectCreated',
         actorUserId: author,
         subjectUserId: subject,
         payload: { objectId: object.id, kind: moment.kind, note: moment.note },

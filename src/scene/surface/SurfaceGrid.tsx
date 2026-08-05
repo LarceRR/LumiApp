@@ -4,14 +4,19 @@ import { memo, type ReactElement, useLayoutEffect, useMemo, useRef } from 'react
 import { type Group, type Mesh, NoToneMapping, PlaneGeometry } from 'three';
 
 import { cameraMotion } from '@/design-system/motion/camera';
+import {
+  selectSurfaceBackground,
+  useSettingsStore,
+} from '@/domains/settings/presentation/stores/settingsStore';
 import { useSurfaceObjectsStore } from '@/domains/surface-objects/presentation/stores/surfaceObjectsStore';
 import { useCameraStore } from '@/scene/stores/cameraStore';
 
-import { SURFACE_CELL_WORLD_SIZE, surfaceVisual } from './constants';
+import { SURFACE_CELL_WORLD_SIZE } from './constants';
 import { computeInfiniteGridCells, snapToCellGrid } from './infiniteSpan';
 import {
   applyEndpointCellUniforms,
   applySurfaceFogUniforms,
+  applySurfaceThemeUniforms,
   createSurfaceGridMaterial,
 } from './surfaceGridMaterial';
 
@@ -21,16 +26,19 @@ function SurfaceGridComponent(): ReactElement {
   const lastSpanRef = useRef(0);
   const gl = useThree((state) => state.gl);
   const viewport = useThree((state) => state.viewport);
+  const background = useSettingsStore(selectSurfaceBackground);
   const surfaceMaterial = useMemo(() => createSurfaceGridMaterial(), []);
 
   useLayoutEffect(() => {
-    gl.setClearColor(surfaceVisual.fill, 1);
+    gl.setClearColor(background, 1);
     gl.toneMapping = NoToneMapping;
-  }, [gl]);
+    applySurfaceThemeUniforms(surfaceMaterial, background);
+  }, [gl, background, surfaceMaterial]);
 
   useFrame(() => {
     const { target, distance } = useCameraStore.getState().orbit;
     const { order, byId } = useSurfaceObjectsStore.getState();
+    const highlightEndpoints = useSettingsStore.getState().highlightEndpoints;
     const spanCells = computeInfiniteGridCells(distance, viewport.aspect);
     const planeSize = spanCells * SURFACE_CELL_WORLD_SIZE;
     const originX = snapToCellGrid(target.x);
@@ -48,7 +56,13 @@ function SurfaceGridComponent(): ReactElement {
     const lastId = order.length > 0 ? order[order.length - 1] : undefined;
     const first = firstId === undefined ? null : (byId[firstId]?.cell ?? null);
     const last = lastId === undefined ? null : (byId[lastId]?.cell ?? null);
-    applyEndpointCellUniforms(surfaceMaterial, first, last);
+
+    // Подсветка крайних объектов — переключатель в настройках сцены.
+    applyEndpointCellUniforms(
+      surfaceMaterial,
+      highlightEndpoints ? first : null,
+      highlightEndpoints ? last : null,
+    );
 
     if (spanCells !== lastSpanRef.current && meshRef.current !== null) {
       lastSpanRef.current = spanCells;

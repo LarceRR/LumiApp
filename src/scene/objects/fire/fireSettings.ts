@@ -37,9 +37,22 @@ export type FireWindSettings = {
   readonly maxHeight: number;
 };
 
+/**
+ * Ореол вокруг огня. Рисуется билбордом в самой сцене, а не постпроцессом:
+ * EffectComposer в react-native не работает, поэтому «настоящего» bloom тут нет
+ * и быть не может.
+ */
 export type FireBloomSettings = {
+  /** Яркость ореола. 0 выключает его полностью. */
   readonly strength: number;
+  /** Радиус ореола в единицах эмиттера — масштабируется вместе с огнём. */
   readonly radius: number;
+  /** Показатель затухания: больше — плотнее ядро и мягче край. */
+  readonly softness: number;
+  /** Высота центра ореола над основанием, единицы эмиттера. */
+  readonly height: number;
+  readonly color: string;
+  /** Только для опционального UnrealBloomPass на вебе — в приложении не участвует. */
   readonly threshold: number;
 };
 
@@ -98,13 +111,16 @@ export const DEFAULT_FIRE_SETTINGS: FireSettings = {
     maxHeight: 2.5,
   },
   bloom: {
-    strength: 0.55,
-    radius: 0.35,
+    strength: 0.85,
+    radius: 1.2,
+    softness: 2.4,
+    height: 0.55,
+    color: '#FF7A1A',
     threshold: 0.82,
   },
 };
 
-/** Defaults for an UnrealBloomPass wired over the scene. */
+/** Defaults for an UnrealBloomPass wired over the scene (web only). */
 export const FIRE_BLOOM_DEFAULTS = DEFAULT_FIRE_SETTINGS.bloom;
 
 /** Particles one fire may use, given whether it currently holds focus. */

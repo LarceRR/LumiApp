@@ -7,8 +7,9 @@ import { toTimelineEvent } from '../mappers/timelineMapper';
 export function createHttpTimelineRepository(http: HttpClient): TimelineRepository {
   return {
     async page(query) {
-      const dto = await http.get<TimelinePageDto>('timeline', {
-        spaceId: query.spaceId,
+      // История принадлежит пространству: GET /v1/spaces/:spaceId/timeline.
+      // spaceId — сегмент пути, а не query-параметр, иначе маршрут не находится.
+      const dto = await http.get<TimelinePageDto>(`spaces/${query.spaceId}/timeline`, {
         limit: query.limit,
         ...(query.cursor === null ? {} : { cursor: query.cursor }),
       });

@@ -1,5 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import type { ImageSourcePropType } from 'react-native';
+import type { ImageSourcePropType, ImageURISource } from 'react-native';
 
 import { TAB_ROUTES, type TabRouteName } from './tabRoutes';
 
@@ -16,6 +16,21 @@ const TEMPLATE_COLOR = '#000000';
 
 let cachedSources: NativeTabIconSources | null = null;
 let loadPromise: Promise<NativeTabIconSources> | null = null;
+
+/**
+ * `getImageSource` рисует глиф по его собственной ширине и не возвращает
+ * размеры, поэтому UIKit меряет элемент таба по первой декодированной картинке.
+ * У часов («История») глиф уже остальных — отступ до подписи уезжал до тех пор,
+ * пока открытие вкладки не подставляло selected-иконку и не переизмеряло ячейку.
+ * Фиксированный квадрат делает все элементы таба одинаковыми с первого кадра.
+ */
+function asSquareSource(source: ImageSourcePropType): ImageSourcePropType {
+  if (typeof source === 'number' || Array.isArray(source)) {
+    return source;
+  }
+
+  return { ...(source as ImageURISource), width: ICON_SIZE, height: ICON_SIZE };
+}
 
 /**
  * Rasterize Ionicons once before NativeTabs mounts. Async tab icons on iOS 26
@@ -39,7 +54,10 @@ export function loadNativeTabIconSources(): Promise<NativeTabIconSources> {
           throw new Error(`Failed to rasterize tab icons for "${route.name}"`);
         }
 
-        return [route.name, { default: defaultSrc, selected: selectedSrc }] as const;
+        return [
+          route.name,
+          { default: asSquareSource(defaultSrc), selected: asSquareSource(selectedSrc) },
+        ] as const;
       }),
     );
 

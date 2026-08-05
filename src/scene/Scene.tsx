@@ -13,9 +13,9 @@ import { SurfaceGrid } from '@/scene/surface/SurfaceGrid';
  * every kind, so adding one is a single line here. Nothing loads from disk:
  * the fire is geometry + shader, so there is no Suspense boundary to keep.
  *
- * The voxel fire is bloom-ready. To enable UnrealBloomPass:
- *   import { FireBloom } from '@/scene/effects/FireBloom';
- *   <FireBloom enabled />
+ * Свечение огня — это билборд внутри самого поля объектов, а не постпроцесс:
+ * EffectComposer на react-native не запускается. Настройки — в разделе
+ * «Свечение» на экране настройки огня.
  */
 export function Scene(): ReactElement {
   return (
