@@ -98,6 +98,7 @@ export const APP_CONFIG = Symbol('APP_CONFIG');
 
 export function loadConfig(source: NodeJS.ProcessEnv = process.env): AppConfig {
   const parsed = envSchema.safeParse(source);
+  console.log(source)
 
   if (!parsed.success) {
     const details = parsed.error.issues

@@ -38,6 +38,7 @@ services:
     environment:
       NODE_ENV: production
       PORT: 3000
+      HOST: 0.0.0.0
       DATABASE_URL: postgres://lumi:lumi@postgres:5432/lumi
       REDIS_URL: redis://redis:6379
       JWT_ACCESS_SECRET: ${JWT_ACCESS_SECRET:-dev-access-secret-dev-access-secret-dev}

@@ -41,7 +41,9 @@ export function createRealtimeClient(options: {
   let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   let subscription: { spaceId: string; channels: readonly RealtimeChannel[] } | null = null;
   let hadOpenConnection = false;
+  let shouldNotifyReconnect = false;
   let intentionallyClosed = false;
+  let lastConnectAttemptAt = 0;
 
   const setStatus = (next: RealtimeStatus): void => {
     if (status === next) {
@@ -73,6 +75,7 @@ export function createRealtimeClient(options: {
       realtimeConfig.reconnectMaxDelayMs,
     );
     attempts += 1;
+    shouldNotifyReconnect = hadOpenConnection && Date.now() - lastConnectAttemptAt > 1000;
     setStatus('reconnecting');
     reconnectTimer = setTimeout(() => {
       if (subscription !== null) {
@@ -92,11 +95,13 @@ export function createRealtimeClient(options: {
 
     next.onopen = () => {
       attempts = 0;
+      lastConnectAttemptAt = Date.now();
       setStatus('open');
       next.send(JSON.stringify({ type: 'subscribe', spaceId, channels }));
-      if (hadOpenConnection) {
+      if (shouldNotifyReconnect) {
         options.onReconnected();
       }
+      shouldNotifyReconnect = false;
       hadOpenConnection = true;
       heartbeat = setInterval(() => {
         if (next.readyState === WebSocket.OPEN) {

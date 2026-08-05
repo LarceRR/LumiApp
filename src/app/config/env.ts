@@ -34,23 +34,74 @@ function asString(value: unknown): string | null {
   return typeof value === 'string' && value.trim().length > 0 ? value.trim() : null;
 }
 
+function getExpoHost(): string | null {
+  const expoConfig = Constants.expoConfig as { hostUri?: string } | undefined;
+  const hostUri = asString(expoConfig?.hostUri);
+
+  if (hostUri === null) {
+    return null;
+  }
+
+  const normalized = hostUri.replace(/^https?:\/\//, '').replace(/^exp:\/\//, '').replace(/\/.*$/, '');
+  const delimiter = normalized.lastIndexOf(':');
+
+  if (delimiter <= 0) {
+    return normalized.length > 0 ? normalized : null;
+  }
+
+  const host = normalized.slice(0, delimiter);
+
+  return host.length > 0 ? host : null;
+}
+
+function resolveApiBaseUrl(value: unknown): string | null {
+  const explicit = asString(value);
+
+  if (explicit !== null) {
+    return explicit;
+  }
+
+  const host = getExpoHost();
+
+  if (host === null) {
+    return null;
+  }
+
+  return `http://${host}:3000/v1`;
+}
+
+function resolveWebsocketUrl(value: unknown, apiBaseUrl: string | null): string | null {
+  const explicit = asString(value);
+
+  if (explicit !== null) {
+    return explicit;
+  }
+
+  if (apiBaseUrl === null) {
+    return null;
+  }
+
+  return apiBaseUrl.replace(/^http/, 'ws').replace(/\/v1\/?$/, '/realtime');
+}
+
 function resolveMode(value: unknown): AppMode {
   if (value === 'production' || value === 'staging' || value === 'development') {
     return value;
   }
 
-  return __DEV__ ? 'development' : 'production';
+  return process.env.NODE_ENV === 'production' ? 'production' : 'development';
 }
 
 function createEnv(): Env {
   const extra = readExtra();
   const mode = resolveMode(extra.mode);
+  const apiBaseUrl = resolveApiBaseUrl(extra.apiBaseUrl);
 
   return {
     mode,
     isDev: mode === 'development',
-    apiBaseUrl: asString(extra.apiBaseUrl),
-    websocketUrl: asString(extra.websocketUrl),
+    apiBaseUrl,
+    websocketUrl: resolveWebsocketUrl(extra.websocketUrl, apiBaseUrl),
     sentryDsn: asString(extra.sentryDsn),
     posthogApiKey: asString(extra.posthogApiKey),
     posthogHost: asString(extra.posthogHost) ?? DEFAULT_POSTHOG_HOST,

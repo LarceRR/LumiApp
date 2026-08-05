@@ -11,7 +11,7 @@ export type TabIconSourcePair = {
 export type NativeTabIconSources = Readonly<Record<TabRouteName, TabIconSourcePair>>;
 
 /** Template tint is applied by UIKit; rasterize with a neutral color once. */
-const ICON_SIZE = 25;
+const ICON_SIZE = 20;
 const TEMPLATE_COLOR = '#000000';
 
 let cachedSources: NativeTabIconSources | null = null;

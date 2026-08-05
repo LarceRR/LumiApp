@@ -55,7 +55,6 @@ function VoxelFirePreviewComponent({ yawRef }: ObjectPreviewProps): ReactElement
 
   return (
     <>
-      <primitive object={layers.glowMesh} />
       <primitive object={layers.emberMesh} />
       <primitive object={layers.flameMesh} />
     </>

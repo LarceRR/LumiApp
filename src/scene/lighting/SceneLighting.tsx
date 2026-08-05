@@ -1,7 +1,7 @@
-import type { ReactElement } from 'react';
+import type { ReactElement } from "react";
 
-import { sceneColors } from '@/design-system/colors/colors';
-import { selectQuality, useSceneStore } from '@/scene/stores/sceneStore';
+import { sceneColors } from "@/design-system/colors/colors";
+import { selectQuality, useSceneStore } from "@/scene/stores/sceneStore";
 
 /** Key + optional fill light — no per-object lights (Frontend-plan performance rules). */
 export function SceneLighting(): ReactElement {
@@ -9,10 +9,14 @@ export function SceneLighting(): ReactElement {
 
   return (
     <>
-      <ambientLight intensity={1.05} color={sceneColors.keyLight} />
-      <directionalLight intensity={0.95} position={[5, 10, 4]} color={sceneColors.keyLight} />
+      <ambientLight intensity={0.8} color="#fff2cc" />
+      <directionalLight intensity={2.2} position={[5, 10, 4]} color="#ffd08a" />
       {enableFillLight ? (
-        <directionalLight intensity={0.4} position={[-4, 5, -3]} color={sceneColors.fillLight} />
+        <directionalLight
+          intensity={0.7}
+          position={[-4, 5, -3]}
+          color="#8fb8ff"
+        />
       ) : null}
     </>
   );

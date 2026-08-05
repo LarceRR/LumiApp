@@ -1,5 +1,3 @@
-import ky, { isHTTPError, isNetworkError, isTimeoutError, type KyInstance } from 'ky';
-
 import { httpConfig } from '@/app/config/constants';
 import { errorFromStatus, NetworkError, toAppError } from '@/shared/errors';
 import type { Logger } from '@/shared/logger';
@@ -47,32 +45,28 @@ export function createHttpClient(options: {
   readonly logger: Logger;
 }): HttpClient {
   const log = options.logger.child('http');
+  const baseUrl = options.baseUrl.trim().replace(/\/+$/, '');
 
-  const instance: KyInstance = ky.create({
-    prefix: options.baseUrl,
-    timeout: httpConfig.timeoutMs,
-    retry: {
-      limit: httpConfig.retryLimit,
-      methods: ['get'],
-      statusCodes: [408, 429, 500, 502, 503, 504],
-    },
-    hooks: {
-      beforeRequest: [
-        async ({ request }) => {
-          const token = await options.tokens.token();
+  if (baseUrl.length === 0) {
+    throw new Error('HTTP baseUrl must not be empty');
+  }
 
-          if (token !== null) {
-            request.headers.set('authorization', `Bearer ${token}`);
-          }
-        },
-      ],
-      beforeRetry: [
-        ({ retryCount, error }) => {
-          log.warn('Повтор запроса', { retryCount, error: error.message });
-        },
-      ],
-    },
-  });
+  const buildUrl = (path: string, searchParams?: SearchParams): string => {
+    const normalizedPath = path.replace(/^\/+/, '');
+    const url = `${baseUrl}/${normalizedPath}`;
+
+    if (!searchParams) {
+      return url;
+    }
+
+    const params = new URLSearchParams();
+
+    for (const [key, value] of Object.entries(searchParams)) {
+      params.set(key, String(value));
+    }
+
+    return `${url}?${params.toString()}`;
+  };
 
   const request = async <T>(
     method: 'get' | 'post' | 'patch' | 'delete',
@@ -80,21 +74,48 @@ export function createHttpClient(options: {
     init: { readonly json?: unknown; readonly searchParams?: SearchParams },
     retryOnUnauthorized = true,
   ): Promise<T> => {
+    const normalizedPath = path.replace(/^\/+/, '');
+    const url = buildUrl(normalizedPath, init.searchParams);
+    const requestBody = init.json;
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), httpConfig.timeoutMs);
+
+    log.info('HTTP запрос', {
+      method,
+      url,
+      path: normalizedPath,
+      body: requestBody,
+      searchParams: init.searchParams,
+    });
+
     try {
-      const response = await instance(path, {
+      const token = await options.tokens.token();
+      const headers = new Headers({ Accept: 'application/json' });
+
+      if (requestBody !== undefined) {
+        headers.set('Content-Type', 'application/json');
+      }
+
+      if (token !== null) {
+        headers.set('Authorization', `Bearer ${token}`);
+      }
+
+      const response = await fetch(url, {
         method,
-        ...(init.json === undefined ? {} : { json: init.json }),
-        ...(init.searchParams === undefined ? {} : { searchParams: { ...init.searchParams } }),
+        headers,
+        body: requestBody === undefined ? undefined : JSON.stringify(requestBody),
+        signal: controller.signal,
       });
+
+      const text = await response.text();
+      const data = text.length > 0 ? parseResponseBody(text) : undefined;
 
       if (response.status === 204) {
         return undefined as T;
       }
 
-      return (await response.json()) as T;
-    } catch (error) {
-      if (isHTTPError(error)) {
-        if (error.response.status === 401 && retryOnUnauthorized) {
+      if (!response.ok) {
+        if (response.status === 401 && retryOnUnauthorized) {
           const refreshed = await options.tokens.invalidate();
 
           if (refreshed !== null) {
@@ -102,20 +123,31 @@ export function createHttpClient(options: {
           }
         }
 
-        const { message, body } = describe(error.response.status, error.data);
-
-        throw errorFromStatus(error.response.status, message, body);
+        const { message, body } = describe(response.status, data ?? text);
+        throw errorFromStatus(response.status, message, body);
       }
 
-      if (isTimeoutError(error)) {
+      return data as T;
+    } catch (error) {
+      log.error('HTTP запрос завершился ошибкой', {
+        method,
+        url,
+        path,
+        body: requestBody,
+        error,
+      });
+
+      if (error instanceof Error && error.name === 'AbortError') {
         throw new NetworkError('Превышено время ожидания сервера', null, { cause: error });
       }
 
-      if (isNetworkError(error)) {
+      if (error instanceof Error && error.message.includes('Network request failed')) {
         throw new NetworkError('Нет соединения с сервером', null, { cause: error });
       }
 
       throw toAppError(error);
+    } finally {
+      clearTimeout(timeout);
     }
   };
 
@@ -133,4 +165,12 @@ export function createHttpClient(options: {
       await request<void>('delete', path, { json: body });
     },
   };
+}
+
+function parseResponseBody(text: string): unknown {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return text;
+  }
 }

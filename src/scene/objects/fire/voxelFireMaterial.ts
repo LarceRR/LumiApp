@@ -38,9 +38,12 @@ const fragmentShader = /* glsl */ `
     float progress = clamp(vHeight / max(uRangeY, 0.0001), 0.0, 1.0);
 
     vec3 color = mix(uBrightColor, uDimColor, progress);
-    float intensity = (1.0 - progress) * uMultiply * (0.8 + 0.2 * noise);
+    float intensity = (1.0 - progress) * uMultiply * (0.5 + 1.0 * noise);
+    float glow = pow(intensity, 0.7);
+    vec3 boosted = mix(color, vec3(1.0, 0.38, 0.08), glow * 0.95);
 
     float bottomFade = uBottomRound > 0.0 ? smoothstep(0.0, uBottomRound, vHeight) : 1.0;
+    float alpha = clamp(glow * bottomFade * vAlpha * 2.4, 0.0, 1.0);
 
     float energy = intensity * bottomFade * vAlpha;
 
@@ -58,17 +61,17 @@ const fragmentShader = /* glsl */ `
 export function createVoxelFireMaterial(noise: Texture): ShaderMaterial {
   return new ShaderMaterial({
     uniforms: {
-      uDimColor: { value: new Color('#6f2b0a') },
-      uBrightColor: { value: new Color('#ffaa44') },
-      uMultiply: { value: 1 },
+      uDimColor: { value: new Color('#1a0502') },
+      uBrightColor: { value: new Color('#ffb347') },
+      uMultiply: { value: 4.2 },
       uTexture: { value: noise },
-      uRangeY: { value: 1 },
-      uBottomRound: { value: 0 },
+      uRangeY: { value: 1.0 },
+      uBottomRound: { value: 0.35 },
     },
     vertexShader,
     fragmentShader,
     side: DoubleSide,
-    transparent: true,
+    transparent: false,
     depthWrite: false,
     blending: NormalBlending,
     premultipliedAlpha: true,

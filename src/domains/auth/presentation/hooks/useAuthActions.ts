@@ -37,8 +37,14 @@ export function useAuthActions(): AuthActions {
   );
 
   const signInMutation = useMutation({
-    mutationFn: (input: { readonly email: string; readonly password: string }) =>
-      useCases.signIn({ type: 'email', email: toEmail(input.email), password: input.password }),
+    mutationFn: (input: { readonly email: string; readonly password: string }) => {
+      console.log('[auth] sign-in pressed', {
+        email: input.email,
+        passwordLength: input.password.length,
+      });
+
+      return useCases.signIn({ type: 'email', email: toEmail(input.email), password: input.password });
+    },
     onSuccess: (session) => {
       sessions.adopt(session);
       setSession(session);

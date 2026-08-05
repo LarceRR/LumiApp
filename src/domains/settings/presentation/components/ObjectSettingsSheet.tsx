@@ -1,27 +1,33 @@
-import { Canvas } from '@react-three/fiber/native';
-import { type ReactElement, useMemo, useRef } from 'react';
-import { Platform, Modal as RNModal, ScrollView, StyleSheet, View } from 'react-native';
-import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Canvas } from "@react-three/fiber/native";
+import { type ReactElement, useMemo, useRef } from "react";
+import {
+  Platform,
+  Modal as RNModal,
+  ScrollView,
+  StyleSheet,
+  View,
+} from "react-native";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import { colors } from '@/design-system/colors/colors';
-import { ColorSwatches } from '@/design-system/components/ColorSwatches/ColorSwatches';
-import { Divider } from '@/design-system/components/Divider/Divider';
-import { IconButton } from '@/design-system/components/IconButton/IconButton';
-import { ListRow } from '@/design-system/components/ListRow/ListRow';
-import { Modal } from '@/design-system/components/Modal/Modal';
-import { Slider } from '@/design-system/components/Slider/Slider';
-import { Switch } from '@/design-system/components/Switch/Switch';
-import { Text } from '@/design-system/components/Text/Text';
-import { icons } from '@/design-system/icons/icons';
-import { layout, spacing } from '@/design-system/spacing/spacing';
-import type { SurfaceObjectKind } from '@/domains/surface-objects/domain/value-objects/SurfaceObjectKind';
+import { colors } from "@/design-system/colors/colors";
+import { ColorSwatches } from "@/design-system/components/ColorSwatches/ColorSwatches";
+import { Divider } from "@/design-system/components/Divider/Divider";
+import { IconButton } from "@/design-system/components/IconButton/IconButton";
+import { ListRow } from "@/design-system/components/ListRow/ListRow";
+import { Modal } from "@/design-system/components/Modal/Modal";
+import { Slider } from "@/design-system/components/Slider/Slider";
+import { Switch } from "@/design-system/components/Switch/Switch";
+import { Text } from "@/design-system/components/Text/Text";
+import { icons } from "@/design-system/icons/icons";
+import { layout, spacing } from "@/design-system/spacing/spacing";
+import type { SurfaceObjectKind } from "@/domains/surface-objects/domain/value-objects/SurfaceObjectKind";
 import {
   type ObjectPreviewComponent,
   type SettingsField,
   surfaceObjectDefinition,
   type SurfaceObjectDefinition,
-} from '@/scene/objects';
+} from "@/scene/objects";
 
 export type ObjectSettingsSheetProps = {
   readonly kind: SurfaceObjectKind | null;
@@ -29,7 +35,7 @@ export type ObjectSettingsSheetProps = {
   readonly onClose: () => void;
 };
 
-const PREVIEW_BACKGROUND = '#14100D';
+const PREVIEW_BACKGROUND = "#14100D";
 /** Radians of spin per pixel of horizontal drag. */
 const DRAG_SENSITIVITY = 0.01;
 
@@ -45,7 +51,11 @@ function formatValue(value: number, step: number): string {
  * The object, alive, above its own knobs. Endless idle spin, and a finger drag
  * takes over the rotation at any moment.
  */
-function PreviewStage({ Preview }: { readonly Preview: ObjectPreviewComponent }): ReactElement {
+function PreviewStage({
+  Preview,
+}: {
+  readonly Preview: ObjectPreviewComponent;
+}): ReactElement {
   const yawRef = useRef(0);
 
   const gesture = useMemo(
@@ -84,13 +94,13 @@ type FieldRowProps = {
 function FieldRow({ definition, field }: FieldRowProps): ReactElement {
   const value = definition.useSettingValue(field.path);
 
-  if (field.kind === 'color') {
+  if (field.kind === "color") {
     return (
       <View style={styles.field}>
         <Text variant="body">{field.label}</Text>
         <ColorSwatches
           accessibilityLabel={field.label}
-          value={typeof value === 'string' ? value : '#FFFFFF'}
+          value={typeof value === "string" ? value : "#FFFFFF"}
           onChange={(next) => {
             definition.setSettingValue(field.path, next);
           }}
@@ -99,7 +109,7 @@ function FieldRow({ definition, field }: FieldRowProps): ReactElement {
     );
   }
 
-  if (field.kind === 'switch') {
+  if (field.kind === "switch") {
     return (
       <ListRow
         title={field.label}
@@ -116,7 +126,7 @@ function FieldRow({ definition, field }: FieldRowProps): ReactElement {
     );
   }
 
-  const numeric = typeof value === 'number' ? value : field.min;
+  const numeric = typeof value === "number" ? value : field.min;
 
   return (
     <View style={styles.field}>
@@ -126,10 +136,10 @@ function FieldRow({ definition, field }: FieldRowProps): ReactElement {
       </View>
       <Slider
         accessibilityLabel={field.label}
-        value={numeric}
         min={field.min}
         max={field.max}
         step={field.step}
+        value={numeric}
         onChange={(next) => {
           definition.setSettingValue(field.path, next);
         }}
@@ -157,7 +167,11 @@ function SheetBody({
           <View key={group.id} style={styles.group}>
             <Text variant="sectionTitle">{group.title}</Text>
             {group.fields.map((field) => (
-              <FieldRow key={field.path} definition={definition} field={field} />
+              <FieldRow
+                key={field.path}
+                definition={definition}
+                field={field}
+              />
             ))}
           </View>
         ))}
@@ -189,7 +203,7 @@ export function ObjectSettingsSheet({
     return null;
   }
 
-  if (Platform.OS === 'android') {
+  if (Platform.OS === "android") {
     return (
       <RNModal
         animationType="slide"
@@ -200,14 +214,25 @@ export function ObjectSettingsSheet({
         <View
           style={[
             styles.window,
-            { paddingTop: insets.top + spacing.md, paddingBottom: insets.bottom },
+            {
+              paddingTop: insets.top + spacing.md,
+              paddingBottom: insets.bottom,
+            },
           ]}
         >
           <View style={styles.windowHeader}>
-            <Text variant="sectionTitle" style={styles.windowTitle} numberOfLines={1}>
+            <Text
+              variant="sectionTitle"
+              style={styles.windowTitle}
+              numberOfLines={1}
+            >
               {definition.settingsTitle}
             </Text>
-            <IconButton icon={icons.close} accessibilityLabel="Закрыть" onPress={onClose} />
+            <IconButton
+              icon={icons.close}
+              accessibilityLabel="Закрыть"
+              onPress={onClose}
+            />
           </View>
           <SheetBody definition={definition} fill />
         </View>
@@ -226,7 +251,7 @@ const styles = StyleSheet.create({
   stage: {
     height: 240,
     borderRadius: 20,
-    overflow: 'hidden',
+    overflow: "hidden",
     backgroundColor: PREVIEW_BACKGROUND,
   },
   canvas: {
@@ -254,9 +279,9 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xs,
   },
   fieldHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     gap: spacing.sm,
   },
   window: {
@@ -266,8 +291,8 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   windowHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: spacing.md,
   },
   windowTitle: {

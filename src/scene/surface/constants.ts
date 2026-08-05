@@ -18,10 +18,10 @@ export const SURFACE_CHUNK_CELLS = 8;
 
 export const surfaceVisual = {
   fill: '#FFFFFF',
-  /** Barely darker than white — subtle cell guides, not heavy lines. */
+  /** Subtle grid lines that stay visible against the pale canvas. */
   grid: '#EBEBEB',
   /** Oldest object on the surface. */
-  firstCell: '#86EFAC',
+  firstCell: '#22C55E',
   /** Newest object on the surface. */
-  lastCell: '#FCA5A5',
+  lastCell: '#F97316',
 } as const;

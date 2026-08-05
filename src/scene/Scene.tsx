@@ -1,4 +1,4 @@
-import type { ReactElement } from 'react';
+import type { ReactElement } from "react";
 
 import { CameraController } from '@/scene/camera/CameraController';
 import { FireBloom } from '@/scene/effects/FireBloom';
