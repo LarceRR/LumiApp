@@ -38,22 +38,23 @@ export type FireWindSettings = {
 };
 
 /**
- * Ореол вокруг огня. Рисуется билбордом в самой сцене, а не постпроцессом:
- * EffectComposer в react-native не работает, поэтому «настоящего» bloom тут нет
- * и быть не может.
+ * The post-processing bloom pass, not a decoration around the fire: the scene
+ * is rendered into an HDR target, everything over `threshold` is blurred into a
+ * mip pyramid and added back. The fire glows because its emission really is
+ * brighter than white.
  */
 export type FireBloomSettings = {
-  /** Яркость ореола. 0 выключает его полностью. */
+  /** How much of the blurred overbright signal comes back. 0 turns bloom off. */
   readonly strength: number;
-  /** Радиус ореола в единицах эмиттера — масштабируется вместе с огнём. */
+  /** 0 — tight hot halo, 1 — wide soft glow. */
   readonly radius: number;
-  /** Показатель затухания: больше — плотнее ядро и мягче край. */
-  readonly softness: number;
-  /** Высота центра ореола над основанием, единицы эмиттера. */
-  readonly height: number;
-  readonly color: string;
-  /** Только для опционального UnrealBloomPass на вебе — в приложении не участвует. */
+  /**
+   * Luminance a pixel needs before it blooms. Above 1 means only genuinely
+   * overbright pixels do, which is why a white surface stays a white surface.
+   */
   readonly threshold: number;
+  /** Exposure applied to the whole frame before the highlight roll-off. */
+  readonly exposure: number;
 };
 
 export type FireSettings = {
@@ -111,16 +112,14 @@ export const DEFAULT_FIRE_SETTINGS: FireSettings = {
     maxHeight: 2.5,
   },
   bloom: {
-    strength: 0.85,
-    radius: 1.2,
-    softness: 2.4,
-    height: 0.55,
-    color: '#FF7A1A',
-    threshold: 0.82,
+    strength: 1,
+    radius: 0.6,
+    threshold: 1.2,
+    exposure: 1,
   },
 };
 
-/** Defaults for an UnrealBloomPass wired over the scene (web only). */
+/** Starting point for the HDR bloom pass. */
 export const FIRE_BLOOM_DEFAULTS = DEFAULT_FIRE_SETTINGS.bloom;
 
 /** Particles one fire may use, given whether it currently holds focus. */

@@ -38,18 +38,21 @@ const fragmentShader = /* glsl */ `
     float progress = clamp(vHeight / max(uRangeY, 0.0001), 0.0, 1.0);
 
     vec3 color = mix(uBrightColor, uDimColor, progress);
-    float intensity = (1.0 - progress) * uMultiply * (0.5 + 1.0 * noise);
-    float glow = pow(intensity, 0.7);
-    vec3 boosted = mix(color, vec3(1.0, 0.38, 0.08), glow * 0.95);
-
     float bottomFade = uBottomRound > 0.0 ? smoothstep(0.0, uBottomRound, vHeight) : 1.0;
-    float alpha = clamp(glow * bottomFade * vAlpha * 2.4, 0.0, 1.0);
 
-    float energy = intensity * bottomFade * vAlpha;
+    // Deliberately unbounded: a voxel at the base carries several times the
+    // energy of white. The HDR pass keeps it, rolls the highlight off and turns
+    // everything over the bloom threshold into glow. Clamping here would flatten
+    // the whole fire into a white block, which is exactly what it used to do.
+    float energy = (1.0 - progress) * uMultiply * (0.5 + noise) * bottomFade * vAlpha;
 
-    // Premultiplied alpha вместо чистого additive: rgb несёт энергию (она бывает
-    // больше единицы и на тёмном фоне работает как свечение), а alpha закрывает
-    // фон — иначе на белой поверхности складывать нечего и огонь пропадает.
+    if (energy <= 0.0025) {
+      discard;
+    }
+
+    // Premultiplied alpha rather than plain additive: rgb carries the (over-
+    // bright) emission, alpha covers the background — otherwise there is nothing
+    // to add to on a light surface and the fire disappears.
     gl_FragColor = vec4(color * energy, clamp(energy, 0.0, 1.0));
   }
 `;
@@ -57,6 +60,9 @@ const fragmentShader = /* glsl */ `
 /**
  * Unlit, depth-write-free, premultiplied — воксельные кубы это чистая эмиссия:
  * внешний свет на них не влияет и друг друга они не перекрывают.
+ *
+ * `transparent: true` ставит слой после непрозрачной поверхности: с premultiplied
+ * alpha порядок отрисовки имеет значение, а в непрозрачной очереди он обратный.
  */
 export function createVoxelFireMaterial(noise: Texture): ShaderMaterial {
   return new ShaderMaterial({
@@ -71,7 +77,7 @@ export function createVoxelFireMaterial(noise: Texture): ShaderMaterial {
     vertexShader,
     fragmentShader,
     side: DoubleSide,
-    transparent: false,
+    transparent: true,
     depthWrite: false,
     blending: NormalBlending,
     premultipliedAlpha: true,
