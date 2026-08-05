@@ -49,6 +49,10 @@ const fragmentShader = /* glsl */ `
  * Замена постпроцессному bloom: EffectComposer в react-native недоступен,
  * поэтому свечение рисуется обычным прозрачным квадом в самой сцене. Материал
  * unlit — источники света на него не влияют.
+ *
+ * Глубину слой не пишет и не проверяет: билборд стоит у основания огня и нижней
+ * половиной уходит под поверхность, а depth-тест прочертил бы поперёк свечения
+ * линию горизонта. Порядок задаёт renderOrder — ореол всегда под частицами.
  */
 export function createFireGlowMaterial(): ShaderMaterial {
   return new ShaderMaterial({
@@ -61,6 +65,7 @@ export function createFireGlowMaterial(): ShaderMaterial {
     fragmentShader,
     transparent: true,
     depthWrite: false,
+    depthTest: false,
     blending: NormalBlending,
     premultipliedAlpha: true,
     toneMapped: false,
