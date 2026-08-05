@@ -151,7 +151,7 @@ export function loadConfig(source: NodeJS.ProcessEnv = process.env): AppConfig {
   };
 }
 
-/**半 самая частая причина падения — не найденный .env. Скажем об этом прямо. */
+/** Самая частая причина падения на старте — не найденный .env. Скажем об этом прямо. */
 function envSourceHint(): string {
   if (loadedEnvFiles.length > 0) {
     return `Прочитаны env-файлы: ${loadedEnvFiles.join(', ')}`;

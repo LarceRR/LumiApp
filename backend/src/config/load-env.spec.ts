@@ -18,8 +18,10 @@ describe('parseEnvFile', () => {
     expect(parsed.get('PORT')).toBe('3000');
   });
 
-  it('снимает кавычки и понимает export', () => {
-    const parsed = parseEnvFile(['export JWT_ACCESS_SECRET="a b c"', "AI_MODEL='gpt-4o-mini'"].join('\n'));
+  it('снимает кавычки и понимает префикс export', () => {
+    const parsed = parseEnvFile(
+      ['export JWT_ACCESS_SECRET="a b c"', "AI_MODEL='gpt-4o-mini'"].join('\n'),
+    );
 
     expect(parsed.get('JWT_ACCESS_SECRET')).toBe('a b c');
     expect(parsed.get('AI_MODEL')).toBe('gpt-4o-mini');
