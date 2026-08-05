@@ -2,6 +2,10 @@ import { Canvas } from '@react-three/fiber/native';
 import { memo, type ReactElement, useEffect, useMemo, useRef } from 'react';
 import { useWindowDimensions } from 'react-native';
 
+import {
+  selectSurfaceBackground,
+  useSettingsStore,
+} from '@/domains/settings/presentation/stores/settingsStore';
 import type { SurfaceBounds } from '@/domains/surfaces/domain/value-objects/SurfaceBounds';
 import type { Logger } from '@/shared/logger';
 import { cameraConfig, defaultCameraDistance, defaultVisibleRows } from './camera/cameraConfig';
@@ -9,7 +13,6 @@ import { SurfaceOrbitControls } from './controls/SurfaceOrbitControls';
 import { Scene } from './Scene';
 import { useCameraStore } from './stores/cameraStore';
 import { cellToWorld } from './surface/cellToWorld';
-import { surfaceVisual } from './surface/constants';
 import { resolveSurfaceLayout } from './surface/surfaceLayout';
 
 export type SceneViewProps = {
@@ -24,6 +27,7 @@ function SceneViewComponent({ bounds, logger, spaceKey = null }: SceneViewProps)
   const setDefaultDistance = useCameraStore((state) => state.setDefaultDistance);
   const setMapCenter = useCameraStore((state) => state.setMapCenter);
   const setTarget = useCameraStore((state) => state.setTarget);
+  const background = useSettingsStore(selectSurfaceBackground);
   const framedSpaceRef = useRef<string | null>(null);
 
   const layout = useMemo(() => resolveSurfaceLayout(bounds), [bounds]);
@@ -75,7 +79,7 @@ function SceneViewComponent({ bounds, logger, spaceKey = null }: SceneViewProps)
           position: [0, 4, 12],
         }}
         gl={{ antialias: true }}
-        style={{ flex: 1, backgroundColor: surfaceVisual.fill }}
+        style={{ flex: 1, backgroundColor: background }}
       >
         <Scene />
       </Canvas>
