@@ -1,6 +1,6 @@
 import {
-  type BufferGeometry,
   BoxGeometry,
+  type BufferGeometry,
   DynamicDrawUsage,
   InstancedBufferAttribute,
   InstancedMesh,
@@ -171,11 +171,7 @@ export class VoxelFireLayers {
     // к камере, поэтому поворот здесь не нужен.
     const size = settings.bloom.radius * settings.worldScale * 2;
 
-    scratchPosition.set(
-      origin.x,
-      origin.y + settings.bloom.height * settings.worldScale,
-      origin.z,
-    );
+    scratchPosition.set(origin.x, origin.y + settings.bloom.height * settings.worldScale, origin.z);
     scratchScale.set(size, size, size);
     scratchMatrix.compose(scratchPosition, NO_ROTATION, scratchScale);
 
