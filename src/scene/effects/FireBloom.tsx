@@ -5,7 +5,7 @@ import type { WebGLRenderer } from 'three';
 import { useFireSettingsStore } from '@/scene/objects/fire/fireSettingsStore';
 import { useSceneStore } from '@/scene/stores/sceneStore';
 
-import { BLOOM_MIPS, BLOOM_SAMPLES } from './bloomTuning';
+import { BLOOM_MIPS } from './bloomTuning';
 import { HdrBloomPipeline } from './hdrBloomPipeline';
 
 /**
@@ -14,19 +14,19 @@ import { HdrBloomPipeline } from './hdrBloomPipeline';
  * the scene through the HDR bloom pipeline and puts the tone-mapped result on
  * screen.
  *
- * Drop it into any Canvas — the surface and the settings preview both use it,
- * so what you tune is exactly what you get.
+ * Expo GL does not implement renderbufferStorageMultisample(), so the offscreen
+ * pipeline deliberately uses single-sample targets. Canvas antialiasing is a
+ * separate native surface feature and remains enabled where supported.
  */
 export function FireBloom(): null {
   const renderer = useThree((state) => state.gl) as WebGLRenderer;
   const scene = useThree((state) => state.scene);
   const camera = useThree((state) => state.camera);
   const tier = useSceneStore((state) => state.quality.tier);
-  const antialias = useSceneStore((state) => state.quality.antialias);
 
   const pipeline = useMemo(
-    () => new HdrBloomPipeline({ mips: BLOOM_MIPS[tier], samples: antialias ? BLOOM_SAMPLES : 0 }),
-    [tier, antialias],
+    () => new HdrBloomPipeline({ mips: BLOOM_MIPS[tier], samples: 0 }),
+    [tier],
   );
 
   useEffect(() => () => pipeline.dispose(), [pipeline]);
