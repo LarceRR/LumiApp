@@ -24,11 +24,13 @@ import { FIRE_LAYER_CAPACITY, VoxelFireLayers } from './voxelFireLayers';
 const MAX_FRAME_SECONDS = 0.05;
 
 /**
- * Every fire on the surface: два слоя воксельных частиц плюс билборд-ореол.
+ * Every fire on the surface: two instanced layers of emissive voxels.
  *
  * Nothing here is loaded from disk: the fire is pure geometry + shader, tuned
- * live from the fire settings store. Objects that drift past the scene fog stop
- * simulating entirely — they are invisible anyway.
+ * live from the fire settings store. The glow is not drawn here either — the
+ * particles simply emit above 1.0 and the HDR bloom pass turns that into light.
+ * Objects that drift past the scene fog stop simulating entirely — they are
+ * invisible anyway.
  */
 function VoxelFireFieldComponent(): ReactElement {
   const tier = useSceneStore((state) => state.quality.tier);
@@ -150,7 +152,6 @@ function VoxelFireFieldComponent(): ReactElement {
 
   return (
     <>
-      <primitive object={layers.glowMesh} />
       <primitive object={layers.emberMesh} />
       <primitive object={layers.flameMesh} />
       <pointLight

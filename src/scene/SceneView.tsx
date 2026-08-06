@@ -12,6 +12,7 @@ import { cameraConfig, defaultCameraDistance, defaultVisibleRows } from './camer
 import { SurfaceOrbitControls } from './controls/SurfaceOrbitControls';
 import { Scene } from './Scene';
 import { useCameraStore } from './stores/cameraStore';
+import { selectQuality, useSceneStore } from './stores/sceneStore';
 import { cellToWorld } from './surface/cellToWorld';
 import { resolveSurfaceLayout } from './surface/surfaceLayout';
 
@@ -28,6 +29,7 @@ function SceneViewComponent({ bounds, logger, spaceKey = null }: SceneViewProps)
   const setMapCenter = useCameraStore((state) => state.setMapCenter);
   const setTarget = useCameraStore((state) => state.setTarget);
   const background = useSettingsStore(selectSurfaceBackground);
+  const quality = useSceneStore(selectQuality);
   const framedSpaceRef = useRef<string | null>(null);
 
   const layout = useMemo(() => resolveSurfaceLayout(bounds), [bounds]);
@@ -78,7 +80,12 @@ function SceneViewComponent({ bounds, logger, spaceKey = null }: SceneViewProps)
           far: cameraConfig.far,
           position: [0, 4, 12],
         }}
-        gl={{ antialias: true }}
+        // The frame lives in an HDR render target sized to the drawing buffer,
+        // so the pixel ratio is a memory budget now, not just a sharpness knob.
+        dpr={quality.maxPixelRatio}
+        // Antialiasing happens on that target (MSAA), not on the default
+        // framebuffer we only ever blit a fullscreen quad into.
+        gl={{ antialias: false }}
         style={{ flex: 1, backgroundColor: background }}
       >
         <Scene />
