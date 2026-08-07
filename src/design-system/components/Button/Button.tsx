@@ -2,10 +2,11 @@ import { memo, type ReactElement } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 
-import { colors } from '../../colors/colors';
+import type { ColorTokens } from '../../colors/tokens';
 import { radius } from '../../radius/radius';
 import { shadows } from '../../shadows/shadows';
 import { layout, spacing } from '../../spacing/spacing';
+import { useTheme } from '../../theme';
 import { usePressFeedback } from '../Pressable/usePressFeedback';
 import { Text } from '../Text/Text';
 
@@ -22,19 +23,30 @@ export type ButtonProps = {
   readonly testID?: string;
 };
 
-const BACKGROUNDS: Readonly<Record<ButtonVariant, string>> = {
-  primary: colors.accent,
-  secondary: colors.surfaceRaised,
-  ghost: 'transparent',
-  danger: colors.negative,
-};
+function backgroundFor(variant: ButtonVariant, colors: ColorTokens): string {
+  switch (variant) {
+    case 'primary':
+      return colors.accent;
+    case 'secondary':
+      return colors.surfaceRaised;
+    case 'danger':
+      return colors.negative;
+    default:
+      return 'transparent';
+  }
+}
 
-const LABEL_COLORS: Readonly<Record<ButtonVariant, string>> = {
-  primary: colors.textInverted,
-  secondary: colors.textPrimary,
-  ghost: colors.textPrimary,
-  danger: colors.textInverted,
-};
+function labelColorFor(variant: ButtonVariant, colors: ColorTokens): string {
+  switch (variant) {
+    case 'primary':
+    case 'danger':
+      // Both fills are mid-chroma in either theme, so the label is always the
+      // light end of the ramp rather than the theme's inverted text colour.
+      return colors.textInverted;
+    default:
+      return colors.textPrimary;
+  }
+}
 
 function ButtonComponent({
   label,
@@ -47,8 +59,9 @@ function ButtonComponent({
   testID,
 }: ButtonProps): ReactElement {
   const feedback = usePressFeedback();
+  const { colors } = useTheme();
   const inactive = disabled || loading;
-  const labelColor = LABEL_COLORS[variant];
+  const labelColor = labelColorFor(variant, colors);
 
   return (
     <Animated.View style={feedback.animatedStyle}>
@@ -65,8 +78,11 @@ function ButtonComponent({
         style={[
           styles.base,
           compact ? styles.compact : styles.regular,
-          { backgroundColor: BACKGROUNDS[variant] },
-          variant === 'secondary' && styles.bordered,
+          { backgroundColor: backgroundFor(variant, colors) },
+          variant === 'secondary' && {
+            borderWidth: StyleSheet.hairlineWidth,
+            borderColor: colors.surfaceDivider,
+          },
           variant === 'primary' && shadows.low,
           inactive && styles.inactive,
         ]}
@@ -100,10 +116,6 @@ const styles = StyleSheet.create({
   compact: {
     minHeight: layout.controlHeightCompact,
     paddingHorizontal: spacing.lg,
-  },
-  bordered: {
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.surfaceDivider,
   },
   inactive: {
     opacity: 0.45,

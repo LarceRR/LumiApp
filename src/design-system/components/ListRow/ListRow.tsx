@@ -2,9 +2,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { memo, type ReactElement, type ReactNode } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { colors } from '../../colors/colors';
 import { type IconName, icons } from '../../icons/icons';
 import { layout, spacing } from '../../spacing/spacing';
+import { useTheme } from '../../theme';
 import { Text } from '../Text/Text';
 
 export type ListRowProps = {
@@ -20,15 +20,17 @@ function ListRowComponent({
   title,
   subtitle,
   icon,
-  iconTint = colors.textSecondary,
+  iconTint,
   onPress,
   trailing,
 }: ListRowProps): ReactElement {
+  const { colors } = useTheme();
+
   const body = (
     <View style={styles.row}>
       {icon === undefined ? null : (
         <View style={styles.iconWrap}>
-          <Ionicons name={icon} size={20} color={iconTint} />
+          <Ionicons name={icon} size={20} color={iconTint ?? colors.textSecondary} />
         </View>
       )}
       <View style={styles.textWrap}>

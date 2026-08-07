@@ -7,12 +7,12 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import { colors } from '../../colors/colors';
 import { durations } from '../../motion/durations';
 import { reanimatedEasing } from '../../motion/easings';
 import { radius } from '../../radius/radius';
 import { shadows } from '../../shadows/shadows';
 import { layout, spacing } from '../../spacing/spacing';
+import { useTheme } from '../../theme';
 
 const TRACK_WIDTH = 50;
 const TRACK_HEIGHT = 30;
@@ -32,7 +32,10 @@ function SwitchComponent({
   accessibilityLabel,
   disabled = false,
 }: SwitchProps): ReactElement {
+  const { colors } = useTheme();
   const progress = useSharedValue(value ? 1 : 0);
+  const offColor = colors.controlTrack;
+  const onColor = colors.accent;
 
   useEffect(() => {
     progress.value = withTiming(value ? 1 : 0, {
@@ -41,13 +44,12 @@ function SwitchComponent({
     });
   }, [value, progress]);
 
-  const trackStyle = useAnimatedStyle(() => ({
-    backgroundColor: interpolateColor(
-      progress.value,
-      [0, 1],
-      [colors.surfaceSunken, colors.accent],
-    ),
-  }));
+  const trackStyle = useAnimatedStyle(
+    () => ({
+      backgroundColor: interpolateColor(progress.value, [0, 1], [offColor, onColor]),
+    }),
+    [offColor, onColor],
+  );
 
   const thumbStyle = useAnimatedStyle(() => ({
     transform: [{ translateX: progress.value * THUMB_TRAVEL }],
@@ -63,7 +65,9 @@ function SwitchComponent({
       onPress={() => onValueChange(!value)}
     >
       <Animated.View style={[styles.track, trackStyle, disabled && styles.disabled]}>
-        <Animated.View style={[styles.thumb, shadows.low, thumbStyle]} />
+        <Animated.View
+          style={[styles.thumb, { backgroundColor: colors.surfaceRaised }, shadows.low, thumbStyle]}
+        />
       </Animated.View>
     </Pressable>
   );
@@ -83,7 +87,6 @@ const styles = StyleSheet.create({
     width: THUMB_SIZE,
     height: THUMB_SIZE,
     borderRadius: radius.pill,
-    backgroundColor: colors.surfaceRaised,
   },
   disabled: {
     opacity: 0.5,

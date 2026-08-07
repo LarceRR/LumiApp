@@ -1,7 +1,8 @@
 import { memo, type ReactElement } from 'react';
 import { Text as RNText, type TextProps as RNTextProps } from 'react-native';
 
-import { type TypographyVariant, typography } from '../../typography/typography';
+import { useTheme } from '../../theme';
+import { type TypographyVariant, typography, typographyColor } from '../../typography/typography';
 
 export type TextProps = RNTextProps & {
   readonly variant?: TypographyVariant;
@@ -16,12 +17,14 @@ function TextComponent({
   style,
   ...rest
 }: TextProps): ReactElement {
+  const { colors } = useTheme();
+
   return (
     <RNText
       {...rest}
       style={[
         typography[variant],
-        color === undefined ? null : { color },
+        { color: color ?? typographyColor(variant, colors) },
         align === undefined ? null : { textAlign: align },
         style,
       ]}
