@@ -11,33 +11,27 @@ export const cameraConfig = {
   far: 500,
 } as const;
 
-/** Distance so one cell spans ~SURFACE_CELL_SIZE_PX at the given viewport height. */
 export function defaultCameraDistance(_screenHeight: number, visibleRows: number): number {
   const fovRad = cameraConfig.fov * DEG_TO_RAD;
   const visibleHeight = visibleRows * SURFACE_CELL_WORLD_SIZE;
   return visibleHeight / (2 * Math.tan(fovRad / 2));
 }
 
-/** Rows visible at default zoom — ties world cell size to screen pixels. */
 export function defaultVisibleRows(screenHeight: number): number {
   return Math.max(1, screenHeight / SURFACE_CELL_SIZE_PX);
 }
 
 /**
- * How far below an object the camera should look so the object lands in the free
- * area above a bottom sheet.
- *
- * A sheet covering `occupiedFraction` of the viewport leaves the top
- * `1 - occupiedFraction`; the centre of that band sits `occupiedFraction / 2` of
- * the viewport height above the middle. Dropping the look-at point by the same
- * amount in world space lifts the object into it. The scene camera is nearly
- * isometric (≈20° elevation), so world Y maps almost one-to-one onto screen Y.
+ * Drop the camera target just enough to put the object in the visual middle of
+ * the open band between the top edge and the sheet top. The old `fraction / 2`
+ * value aimed at the midpoint of the entire upper band, which left the fire
+ * visibly too high on phones with a tall details sheet.
  */
 export function inspectTargetYOffset(distance: number, occupiedFraction: number): number {
   const fovRad = cameraConfig.fov * DEG_TO_RAD;
   const visibleHeight = 2 * distance * Math.tan(fovRad / 2);
-
-  return visibleHeight * (occupiedFraction / 2);
+  const openBandPosition = occupiedFraction * 0.22;
+  return visibleHeight * openBandPosition;
 }
 
 export function orbitPosition(orbit: {
@@ -50,39 +44,20 @@ export function orbitPosition(orbit: {
   const x = orbit.target.x + horizontal * Math.sin(orbit.azimuth);
   const y = orbit.target.y + orbit.distance * Math.sin(orbit.elevation);
   const z = orbit.target.z + horizontal * Math.cos(orbit.azimuth);
-
   return { x, y, z };
 }
 
-/**
- * Screen-pixel pan → world XZ delta, relative to camera facing and elevation.
- * Map-style drag: finger and surface move together on screen
- * (look-at shifts opposite to the finger).
- */
-export function panDeltaFromScreen(
-  changeX: number,
-  changeY: number,
-  azimuth: number,
-  elevation: number,
-  worldPerPixel: number,
-): { readonly x: number; readonly z: number } {
+export function panDeltaFromScreen(changeX: number, changeY: number, azimuth: number, elevation: number, worldPerPixel: number): { readonly x: number; readonly z: number } {
   const sinElev = Math.max(Math.sin(elevation), 0.087);
   const verticalScale = 1 / sinElev;
-
   const forwardX = -Math.sin(azimuth);
   const forwardZ = -Math.cos(azimuth);
   const rightX = Math.cos(azimuth);
   const rightZ = -Math.sin(azimuth);
-
   const scaledY = changeY * verticalScale;
-
-  return {
-    x: (forwardX * scaledY - rightX * changeX) * worldPerPixel,
-    z: (forwardZ * scaledY - rightZ * changeX) * worldPerPixel,
-  };
+  return { x: (forwardX * scaledY - rightX * changeX) * worldPerPixel, z: (forwardZ * scaledY - rightZ * changeX) * worldPerPixel };
 }
 
-/** World units represented by one screen pixel at the current framing. */
 export function worldUnitsPerPixel(distance: number, screenHeight: number): number {
   const fovRad = cameraConfig.fov * DEG_TO_RAD;
   const visibleHeight = 2 * distance * Math.tan(fovRad / 2);

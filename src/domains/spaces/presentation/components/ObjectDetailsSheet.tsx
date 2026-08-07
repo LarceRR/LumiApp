@@ -1,4 +1,4 @@
-import { memo, type ReactElement } from 'react';
+import { memo, type ReactElement, type ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { useThemeColors } from '@/design-system/colors/colors';
@@ -22,7 +22,7 @@ function ObjectDetailsSheetComponent({ object, visible, heightFraction, onClose,
   const presentation = kindPresentation(object.kind);
   const note = noteOf(object);
   const canSoften = availableTransitions(object.state).includes('soften');
-  return <Modal visible={visible} onClose={onClose} title={presentation.title} heightFraction={heightFraction} scrimOpacity={0.08}><View style={styles.meta}><Text variant="caption">{STATE_LABELS[object.state]} · ячейка {object.cell.x}, {object.cell.y}</Text>{note === null ? null : <Text variant="body">{note}</Text>}</View><Divider /><ListRow title={object.favorite ? 'В избранном' : 'Добавить в избранное'} icon={object.favorite ? icons.favorite : icons.favoriteOutline} iconTint={object.favorite ? theme.accent : theme.textSecondary} onPress={() => onToggleFavorite(object)} />{canSoften ? <ListRow title="Смягчить" subtitle="Объект начнёт затухать" icon={icons.soften} onPress={() => onSoften(object)} /> : null}<View style={styles.spacer} /><Button label="Убрать с поверхности" variant="danger" onPress={() => onDelete(object)} /></Modal>;
+  return <Modal visible={visible} onClose={onClose} title={presentation.title} heightFraction={heightFraction} scrimOpacity={0}><View style={styles.meta}><Text variant="caption">{STATE_LABELS[object.state]} · ячейка {object.cell.x}, {object.cell.y}</Text>{note === null ? null : <Text variant="body">{note}</Text>}</View><Divider /><ListRow title={object.favorite ? 'В избранном' : 'Добавить в избранное'} icon={object.favorite ? icons.favorite : icons.favoriteOutline} iconTint={object.favorite ? theme.accent : theme.textSecondary} onPress={() => onToggleFavorite(object)} />{canSoften ? <ListRow title="Смягчить" subtitle="Объект начнёт затухать" icon={icons.soften} onPress={() => onSoften(object)} /> : null}<View style={styles.spacer} /><Button label="Убрать с поверхности" variant="danger" onPress={() => onDelete(object)} /></Modal>;
 }
 export const ObjectDetailsSheet = memo(ObjectDetailsSheetComponent);
 const styles = StyleSheet.create({ meta: { gap: spacing.sm }, spacer: { flex: 1, minHeight: spacing.md } });

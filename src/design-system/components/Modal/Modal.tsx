@@ -10,32 +10,19 @@ import { layout, spacing } from '../../spacing/spacing';
 import { IconButton } from '../IconButton/IconButton';
 import { Text } from '../Text/Text';
 
-export type ModalProps = {
-  readonly visible: boolean;
-  readonly onClose: () => void;
-  readonly title: string;
-  readonly children: ReactNode;
-  readonly heightFraction?: number;
-  readonly scrimOpacity?: number;
-  readonly keyboardDismissible?: boolean;
-};
+export type ModalProps = { readonly visible: boolean; readonly onClose: () => void; readonly title: string; readonly children: ReactNode; readonly heightFraction?: number; readonly scrimOpacity?: number; readonly keyboardDismissible?: boolean };
 
 function ModalComponent({ visible, onClose, title, children, heightFraction, scrimOpacity = 0.24, keyboardDismissible = false }: ModalProps): ReactElement {
   const insets = useSafeAreaInsets();
   const theme = useThemeColors();
   const { height } = useWindowDimensions();
-
+  const scrim = scrimOpacity > 0 ? <Animated.View entering={FadeIn} exiting={FadeOut} style={[styles.scrim, { backgroundColor: theme.scrim, opacity: scrimOpacity / 0.24 }]}><Pressable accessibilityLabel="Закрыть" style={styles.scrimTouch} onPress={onClose} /></Animated.View> : null;
   return (
     <RNModal animationType="none" transparent visible={visible} onRequestClose={onClose} statusBarTranslucent={Platform.OS === 'android'}>
-      <Animated.View entering={FadeIn} exiting={FadeOut} style={[styles.scrim, { backgroundColor: theme.scrim, opacity: scrimOpacity / 0.24 }]}>
-        <Pressable accessibilityLabel="Закрыть" style={styles.scrimTouch} onPress={onClose} />
-      </Animated.View>
+      {scrim}
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={insets.top} style={styles.sheetWrap}>
         <Animated.View entering={SlideInDown} exiting={SlideOutDown} style={[styles.sheet, { backgroundColor: theme.surfaceRaised, paddingBottom: insets.bottom + spacing.lg }, heightFraction === undefined ? null : { minHeight: height * heightFraction }]}>
-          <View style={styles.header}>
-            <Text variant="sectionTitle" style={styles.title} numberOfLines={1}>{title}</Text>
-            <IconButton icon={icons.close} accessibilityLabel="Закрыть" onPress={onClose} />
-          </View>
+          <View style={styles.header}><Text variant="sectionTitle" style={styles.title} numberOfLines={1}>{title}</Text><IconButton icon={icons.close} accessibilityLabel="Закрыть" onPress={onClose} /></View>
           {children}
           {keyboardDismissible ? <Pressable accessibilityRole="button" accessibilityLabel="Скрыть клавиатуру" onPress={() => Keyboard.dismiss()} style={styles.keyboardButton}><Text variant="caption">Скрыть клавиатуру</Text></Pressable> : null}
         </Animated.View>
@@ -45,13 +32,4 @@ function ModalComponent({ visible, onClose, title, children, heightFraction, scr
 }
 
 export const Modal = memo(ModalComponent);
-
-const styles = StyleSheet.create({
-  scrim: { ...StyleSheet.absoluteFillObject },
-  scrimTouch: { flex: 1 },
-  sheetWrap: { flex: 1, justifyContent: 'flex-end' },
-  sheet: { borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl, paddingHorizontal: layout.screenGutter, paddingTop: spacing.lg, gap: spacing.lg },
-  header: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-  title: { flex: 1 },
-  keyboardButton: { alignSelf: 'center', paddingVertical: spacing.xs },
-});
+const styles = StyleSheet.create({ scrim: { ...StyleSheet.absoluteFillObject }, scrimTouch: { flex: 1 }, sheetWrap: { flex: 1, justifyContent: 'flex-end' }, sheet: { borderTopLeftRadius: radius.xl, borderTopRightRadius: radius.xl, paddingHorizontal: layout.screenGutter, paddingTop: spacing.lg, gap: spacing.lg }, header: { flexDirection: 'row', alignItems: 'center', gap: spacing.md }, title: { flex: 1 }, keyboardButton: { alignSelf: 'center', paddingVertical: spacing.xs } });
