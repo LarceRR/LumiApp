@@ -223,11 +223,13 @@ const styles = StyleSheet.create({
     right: layout.screenGutter,
     top: 0,
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     gap: spacing.md,
   },
   topSlot: {
     flex: 1,
+    minHeight: ADD_BUTTON_SIZE,
+    justifyContent: 'center',
     gap: spacing.xxs,
   },
   topCenter: {
