@@ -2,17 +2,22 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import type { ReactElement } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
+
 import { useBootstrap } from '@/app/bootstrap/useBootstrap';
 import { ToastHost } from '@/app/components/ToastHost';
+import { useAuthGuard } from '@/app/navigation/useAuthGuard';
 import { AppProviders } from '@/app/providers/AppProviders';
-import { colors } from '@/design-system/colors/colors';
+import { useTheme } from '@/design-system/theme';
 
 function RootNavigator(): ReactElement {
   const { isReady } = useBootstrap();
+  const { colors } = useTheme();
+
+  useAuthGuard(isReady);
 
   if (!isReady) {
     return (
-      <View style={styles.splash}>
+      <View style={[styles.splash, { backgroundColor: colors.surface }]}>
         <ActivityIndicator color={colors.textSecondary} size="large" />
       </View>
     );
@@ -38,10 +43,16 @@ function RootNavigator(): ReactElement {
   );
 }
 
+function ThemedStatusBar(): ReactElement {
+  const { colors } = useTheme();
+
+  return <StatusBar style={colors.statusBarStyle} />;
+}
+
 export default function RootLayout(): ReactElement {
   return (
     <AppProviders>
-      <StatusBar style="dark" />
+      <ThemedStatusBar />
       <RootNavigator />
     </AppProviders>
   );
@@ -52,6 +63,5 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.surface,
   },
 });
