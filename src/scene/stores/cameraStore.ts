@@ -3,6 +3,7 @@ import { create } from 'zustand';
 import { cameraMotion } from '@/design-system/motion/camera';
 import { surfaceObjectMotion } from '@/design-system/motion/surface-objects';
 import type { Cell } from '@/domains/surface-objects/domain/value-objects/Cell';
+import { inspectTargetYOffset } from '@/scene/camera/cameraConfig';
 import {
   type FocusTourState,
   focusTourFrame,
@@ -37,6 +38,9 @@ export type PanVelocity = {
 type RecenterAnimation = {
   readonly from: OrbitTarget;
   readonly to: OrbitTarget;
+  /** Optional distance leg — used when leaving inspect framing. */
+  readonly fromDistance: number | null;
+  readonly toDistance: number | null;
   readonly elapsedSeconds: number;
   readonly durationSeconds: number;
 };
@@ -53,6 +57,7 @@ type CameraState = {
   setDefaultDistance: (distance: number) => void;
   setMapCenter: (center: OrbitTarget, cell: Cell) => void;
   setTarget: (target: OrbitTarget) => void;
+  frameObject: (target: OrbitTarget, faceYaw: number, distanceFactor: number) => void;
   orbitBy: (deltaAzimuth: number, deltaElevation: number) => void;
   panBy: (deltaX: number, deltaZ: number) => void;
   zoomByFactor: (scale: number) => void;
@@ -69,6 +74,7 @@ type CameraState = {
   ) => number;
   tickFocusTour: (deltaSeconds: number) => void;
   cancelFocusTour: () => void;
+  endInspect: () => void;
   tickMomentum: (deltaSeconds: number) => void;
   reset: () => void;
 };
@@ -128,6 +134,26 @@ export const useCameraStore = create<CameraState>()((set, get) => ({
       orbit: {
         ...state.orbit,
         target,
+      },
+    }));
+  },
+  /**
+   * Hard cut to an object's face. Used for the first frame after launch or
+   * sign-in, where an animation would just be a loading screen with easing.
+   */
+  frameObject: (target, faceYaw, distanceFactor) => {
+    const { defaultDistance } = get();
+
+    set((state) => ({
+      recenter: null,
+      focusTour: null,
+      orbitVelocity: ZERO_ORBIT_VELOCITY,
+      panVelocity: ZERO_PAN_VELOCITY,
+      orbit: {
+        ...state.orbit,
+        target: { ...target },
+        azimuth: orbitAzimuthFacing(faceYaw),
+        distance: clampDistance(defaultDistance * distanceFactor, defaultDistance),
       },
     }));
   },
@@ -209,6 +235,8 @@ export const useCameraStore = create<CameraState>()((set, get) => ({
       recenter: {
         from: { ...orbit.target },
         to: { ...mapCenter },
+        fromDistance: null,
+        toDistance: null,
         elapsedSeconds: 0,
         durationSeconds: cameraMotion.recenterDurationMs / 1000,
       },
@@ -219,7 +247,7 @@ export const useCameraStore = create<CameraState>()((set, get) => ({
       return;
     }
 
-    const { recenter, orbit } = get();
+    const { recenter, orbit, defaultDistance } = get();
 
     if (recenter === null) {
       return;
@@ -227,6 +255,8 @@ export const useCameraStore = create<CameraState>()((set, get) => ({
 
     const elapsedSeconds = recenter.elapsedSeconds + deltaSeconds;
     const progress = elapsedSeconds / recenter.durationSeconds;
+    const { fromDistance, toDistance } = recenter;
+    const animatesDistance = fromDistance !== null && toDistance !== null;
 
     if (progress >= 1) {
       set({
@@ -234,6 +264,7 @@ export const useCameraStore = create<CameraState>()((set, get) => ({
         orbit: {
           ...orbit,
           target: { ...recenter.to },
+          distance: animatesDistance ? clampDistance(toDistance, defaultDistance) : orbit.distance,
         },
       });
 
@@ -248,22 +279,46 @@ export const useCameraStore = create<CameraState>()((set, get) => ({
       orbit: {
         ...orbit,
         target: lerpTarget(recenter.from, recenter.to, progress),
+        distance: animatesDistance
+          ? clampDistance(
+              fromDistance + (toDistance - fromDistance) * progress,
+              defaultDistance,
+            )
+          : orbit.distance,
       },
     });
   },
   startFocusTour: (focusTarget, faceYaw, options) => {
     const { orbit, defaultDistance } = get();
-    const { spawn } = surfaceObjectMotion;
+    const { spawn, inspect: inspectMotion } = surfaceObjectMotion;
     const inspect = options?.mode === 'inspect';
-    // Radially symmetric objects — azimuth from yaw still uses local +X as the
-    // facing reference, so framing stays deterministic.
-    const focusAzimuth = orbitAzimuthFacing(faceYaw);
+
+    const focusDistance = clampDistance(
+      defaultDistance * (inspect ? inspectMotion.distanceFactor : spawn.focusDistanceFactor),
+      defaultDistance,
+    );
+
+    // Inspect holds the camera heading and drops the look-at point so the object
+    // rises into the free area above the sheet. Spawn still swings around to the
+    // object's face, because there is no sheet in the way.
+    const target: OrbitTarget = inspect
+      ? {
+          x: focusTarget.x,
+          y:
+            focusTarget.y -
+            inspectTargetYOffset(focusDistance, inspectMotion.sheetScreenFraction),
+          z: focusTarget.z,
+        }
+      : { ...focusTarget };
+
+    const focusAzimuth = inspect ? orbit.azimuth : orbitAzimuthFacing(faceYaw);
+
     const tour: FocusTourState = {
-      focusTarget: { ...focusTarget },
+      focusTarget: target,
       savedTarget: { ...orbit.target },
       savedDistance: orbit.distance,
       savedAzimuth: orbit.azimuth,
-      focusDistance: clampDistance(defaultDistance * spawn.focusDistanceFactor, defaultDistance),
+      focusDistance,
       faceYaw,
       focusAzimuth,
       elapsedSeconds: 0,
@@ -319,6 +374,33 @@ export const useCameraStore = create<CameraState>()((set, get) => ({
   },
   cancelFocusTour: () => {
     set({ focusTour: null });
+  },
+  /**
+   * Leave inspect framing: lift the look-at point back to the surface plane and
+   * pull the distance out to the default, without moving off the object.
+   */
+  endInspect: () => {
+    const { orbit, defaultDistance } = get();
+
+    if (orbit.target.y === 0 && orbit.distance === defaultDistance) {
+      set({ focusTour: null });
+
+      return;
+    }
+
+    set({
+      focusTour: null,
+      orbitVelocity: ZERO_ORBIT_VELOCITY,
+      panVelocity: ZERO_PAN_VELOCITY,
+      recenter: {
+        from: { ...orbit.target },
+        to: { x: orbit.target.x, y: 0, z: orbit.target.z },
+        fromDistance: orbit.distance,
+        toDistance: defaultDistance,
+        elapsedSeconds: 0,
+        durationSeconds: cameraMotion.recenterDurationMs / 1000,
+      },
+    });
   },
   tickMomentum: (deltaSeconds) => {
     if (get().recenter !== null || get().focusTour !== null) {

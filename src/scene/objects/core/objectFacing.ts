@@ -25,3 +25,18 @@ export function orbitAzimuthFacing(
 
   return Math.atan2(worldX, worldZ);
 }
+
+/**
+ * The inverse: the yaw an object must take to face a camera already sitting at
+ * `orbitAzimuth`.
+ *
+ * Used by inspect, where the camera holds its heading and the object turns
+ * instead — moving the world around the viewer reads as a UI transition, while
+ * turning the object reads as the object noticing you.
+ */
+export function objectYawFacingCamera(
+  orbitAzimuth: number,
+  localFaceNormal: { readonly x: number; readonly z: number } = OBJECT_LOCAL_FACE_NORMAL,
+): number {
+  return orbitAzimuth - Math.atan2(localFaceNormal.x, localFaceNormal.z);
+}

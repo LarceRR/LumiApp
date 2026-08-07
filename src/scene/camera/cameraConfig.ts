@@ -23,6 +23,23 @@ export function defaultVisibleRows(screenHeight: number): number {
   return Math.max(1, screenHeight / SURFACE_CELL_SIZE_PX);
 }
 
+/**
+ * How far below an object the camera should look so the object lands in the free
+ * area above a bottom sheet.
+ *
+ * A sheet covering `occupiedFraction` of the viewport leaves the top
+ * `1 - occupiedFraction`; the centre of that band sits `occupiedFraction / 2` of
+ * the viewport height above the middle. Dropping the look-at point by the same
+ * amount in world space lifts the object into it. The scene camera is nearly
+ * isometric (≈20° elevation), so world Y maps almost one-to-one onto screen Y.
+ */
+export function inspectTargetYOffset(distance: number, occupiedFraction: number): number {
+  const fovRad = cameraConfig.fov * DEG_TO_RAD;
+  const visibleHeight = 2 * distance * Math.tan(fovRad / 2);
+
+  return visibleHeight * (occupiedFraction / 2);
+}
+
 export function orbitPosition(orbit: {
   readonly azimuth: number;
   readonly elevation: number;

@@ -10,6 +10,14 @@ export class VoxelFireEmitter {
   readonly flame: FireParticleLayer;
   /** Damped by the field: spawn / focus dimming and fog fade. */
   opacity = 0;
+  /**
+   * Current yaw in radians, damped by the field.
+   *
+   * At rest this is the object's deterministic surface pose; while inspected it
+   * turns to face the camera. Damping is what makes the turn read as part of the
+   * zoom rather than a snap.
+   */
+  yaw = 0;
 
   constructor(settings: FireSettings, isFocused = false) {
     this.ember = new FireParticleLayer(

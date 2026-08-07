@@ -10,10 +10,12 @@ import { useSurfaceObjectsStore } from '@/domains/surface-objects/presentation/s
 import { useCameraStore } from '@/scene/stores/cameraStore';
 import { useSceneStore } from '@/scene/stores/sceneStore';
 import { cellToWorld, type WorldPoint } from '@/scene/surface/cellToWorld';
-import { dampOverMs } from '@/shared/utils/math';
+import { dampOverMs, shortestAngleDelta } from '@/shared/utils/math';
 
 import { isLostInFog, objectFogFactor, viewDepth } from '../core/fogVisibility';
 import { objectAnimationPlaying, objectOpacityTarget } from '../core/objectFocus';
+import { objectYawFacingCamera } from '../core/objectFacing';
+import { objectYawRadians } from '../core/objectYaw';
 import { selectVisibleObjects } from '../core/selectVisibleObjects';
 import { VoxelFireEmitter } from './fireEmitter';
 import { FIRE_LIGHT, fireLightIntensity } from './fireLight';
@@ -94,6 +96,11 @@ function VoxelFireFieldComponent(): ReactElement {
     const alive = new Set<string>();
     let focusWorld: WorldPoint | null = null;
 
+    // Everything selected turns to meet the camera; everything else relaxes back
+    // to the pose it holds on the surface.
+    const viewYaw = objectYawFacingCamera(orbit.azimuth);
+    const { rotateMs } = surfaceObjectMotion.inspect;
+
     layers.begin();
 
     for (const item of visible) {
@@ -101,17 +108,20 @@ function VoxelFireFieldComponent(): ReactElement {
 
       const world = cellToWorld(item.cell);
       const isFocused = item.id === selectedId || item.id === spawningId;
+      const restYaw = objectYawRadians(item.id);
 
       let emitter = emitters.get(item.id);
 
       if (emitter === undefined) {
         emitter = new VoxelFireEmitter(fire, isFocused);
+        emitter.yaw = restYaw;
         emitters.set(item.id, emitter);
       }
 
       const fog = objectFogFactor(world, orbit);
       const playing = objectAnimationPlaying({ fogFactor: fog, reduceMotion });
       const target = objectOpacityTarget(isFocused, dimOthers) * (1 - fog);
+      const targetYaw = item.id === selectedId ? viewYaw : restYaw;
 
       emitter.opacity = dampOverMs(
         emitter.opacity,
@@ -119,10 +129,17 @@ function VoxelFireFieldComponent(): ReactElement {
         surfaceObjectMotion.dim.fadeMs,
         delta,
       );
+
+      // Damped along the short arc: the turn lasts about as long as the zoom, and
+      // interrupting it mid-way (tap another fire) never spins the long way round.
+      emitter.yaw = reduceMotion
+        ? targetYaw
+        : emitter.yaw + dampOverMs(0, shortestAngleDelta(emitter.yaw, targetYaw), rotateMs, delta);
+
       emitter.configure(fire, isFocused);
       emitter.update(playing ? simDelta : 0, fire);
 
-      layers.write(emitter, world, fire);
+      layers.write(emitter, world, fire, emitter.yaw);
 
       if (isFocused) {
         focusWorld = world;

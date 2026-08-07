@@ -26,7 +26,8 @@ const ALPHA_ATTRIBUTE = 'aAlpha';
 const scratchMatrix = new Matrix4();
 const scratchPosition = new Vector3();
 const scratchScale = new Vector3();
-const NO_ROTATION = new Quaternion();
+const scratchRotation = new Quaternion();
+const Y_AXIS = new Vector3(0, 1, 0);
 
 function createLayerMesh(material: ShaderMaterial, capacity: number): InstancedMesh {
   const geometry = new BoxGeometry(1, 1, 1);
@@ -81,7 +82,13 @@ export class VoxelFireLayers {
     this.flameUsed = 0;
   }
 
-  write(emitter: VoxelFireEmitter, origin: WorldPoint, settings: FireSettings): void {
+  /** `yaw` turns the whole fire around its own cell centre (radians, Y axis). */
+  write(
+    emitter: VoxelFireEmitter,
+    origin: WorldPoint,
+    settings: FireSettings,
+    yaw = 0,
+  ): void {
     const worldScale = settings.worldScale;
     this.emberUsed = this.writeLayer(
       this.emberMesh,
@@ -92,6 +99,7 @@ export class VoxelFireLayers {
       origin,
       worldScale,
       emitter.opacity,
+      yaw,
     );
     this.flameUsed = this.writeLayer(
       this.flameMesh,
@@ -102,6 +110,7 @@ export class VoxelFireLayers {
       origin,
       worldScale,
       emitter.opacity,
+      yaw,
     );
   }
 
@@ -132,22 +141,41 @@ export class VoxelFireLayers {
     origin: WorldPoint,
     worldScale: number,
     opacity: number,
+    yaw: number,
   ): number {
     let index = used;
+
+    // Rotation is uniform across the layer: resolve the trig and the quaternion
+    // once, not per particle.
+    const turning = yaw !== 0;
+    const cos = Math.cos(yaw);
+    const sin = Math.sin(yaw);
+
+    if (turning) {
+      scratchRotation.setFromAxisAngle(Y_AXIS, yaw);
+    } else {
+      scratchRotation.identity();
+    }
+
     layer.forEach((x, y, z, scale) => {
       if (index >= capacity) return;
+
+      const localX = turning ? x * cos + z * sin : x;
+      const localZ = turning ? -x * sin + z * cos : z;
+
       scratchPosition.set(
-        origin.x + x * worldScale,
+        origin.x + localX * worldScale,
         origin.y + y * worldScale,
-        origin.z + z * worldScale,
+        origin.z + localZ * worldScale,
       );
       const size = scale * worldScale;
       scratchScale.set(size, size, size);
-      scratchMatrix.compose(scratchPosition, NO_ROTATION, scratchScale);
+      scratchMatrix.compose(scratchPosition, scratchRotation, scratchScale);
       mesh.setMatrixAt(index, scratchMatrix);
       alpha.setX(index, opacity);
       index += 1;
     });
+
     return index;
   }
 }

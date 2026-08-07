@@ -2,19 +2,23 @@ import { Canvas } from '@react-three/fiber/native';
 import { memo, type ReactElement, useEffect, useMemo, useRef } from 'react';
 import { useWindowDimensions } from 'react-native';
 
+import { useColorSchemeToken } from '@/design-system/colors/colors';
 import {
   selectSurfaceBackground,
   useSettingsStore,
 } from '@/domains/settings/presentation/stores/settingsStore';
+import { useSurfaceObjectsStore } from '@/domains/surface-objects/presentation/stores/surfaceObjectsStore';
 import type { SurfaceBounds } from '@/domains/surfaces/domain/value-objects/SurfaceBounds';
 import type { Logger } from '@/shared/logger';
 import { cameraConfig, defaultCameraDistance, defaultVisibleRows } from './camera/cameraConfig';
+import { useInitialFraming } from './camera/useInitialFraming';
 import { SurfaceOrbitControls } from './controls/SurfaceOrbitControls';
 import { Scene } from './Scene';
 import { useCameraStore } from './stores/cameraStore';
 import { selectQuality, useSceneStore } from './stores/sceneStore';
 import { cellToWorld } from './surface/cellToWorld';
 import { resolveSurfaceLayout } from './surface/surfaceLayout';
+import { resolveSurfaceBackground } from './surface/surfaceTheme';
 
 export type SceneViewProps = {
   readonly bounds: SurfaceBounds | null;
@@ -28,7 +32,8 @@ function SceneViewComponent({ bounds, logger, spaceKey = null }: SceneViewProps)
   const setDefaultDistance = useCameraStore((state) => state.setDefaultDistance);
   const setMapCenter = useCameraStore((state) => state.setMapCenter);
   const setTarget = useCameraStore((state) => state.setTarget);
-  const background = useSettingsStore(selectSurfaceBackground);
+  const scheme = useColorSchemeToken();
+  const background = resolveSurfaceBackground(useSettingsStore(selectSurfaceBackground), scheme);
   const quality = useSceneStore(selectQuality);
   const framedSpaceRef = useRef<string | null>(null);
 
@@ -40,6 +45,10 @@ function SceneViewComponent({ bounds, logger, spaceKey = null }: SceneViewProps)
     [height],
   );
 
+  // An empty surface has nothing to look at, so the camera falls back to the
+  // centre. As soon as objects exist, `useInitialFraming` takes over.
+  useInitialFraming(spaceKey);
+
   useEffect(() => {
     setDefaultDistance(defaultDistance);
     setMapCenter({ x: focusWorld.x, y: 0, z: focusWorld.z }, layout.focusCell);
@@ -47,7 +56,9 @@ function SceneViewComponent({ bounds, logger, spaceKey = null }: SceneViewProps)
     // Bounds expand when objects spawn — update the double-tap home without
     // yanking the live camera target back to the surface centre.
     const space = spaceKey ?? '__default__';
-    if (framedSpaceRef.current !== space) {
+    const isEmpty = useSurfaceObjectsStore.getState().order.length === 0;
+
+    if (framedSpaceRef.current !== space && isEmpty) {
       framedSpaceRef.current = space;
       setTarget({ x: focusWorld.x, y: 0, z: focusWorld.z });
     }

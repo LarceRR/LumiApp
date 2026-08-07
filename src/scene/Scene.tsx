@@ -1,4 +1,4 @@
-import type { ReactElement } from "react";
+import type { ReactElement } from 'react';
 
 import { CameraController } from '@/scene/camera/CameraController';
 import { FireBloom } from '@/scene/effects/FireBloom';
@@ -6,6 +6,7 @@ import { SceneAtmosphere } from '@/scene/effects/SceneAtmosphere';
 import { SceneLighting } from '@/scene/lighting/SceneLighting';
 import { VoxelFireField } from '@/scene/objects';
 import { SurfaceGrid } from '@/scene/surface/SurfaceGrid';
+import { FpsMeter } from '@/scene/systems/FpsMeter';
 
 /** Scene graph for the surface map. */
 export function Scene(): ReactElement {
@@ -17,6 +18,7 @@ export function Scene(): ReactElement {
       <SurfaceGrid />
       <VoxelFireField />
       <FireBloom />
+      <FpsMeter />
     </>
   );
 }

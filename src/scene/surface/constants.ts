@@ -16,12 +16,16 @@ export const INFINITE_GRID_BUFFER_CELLS = 24;
 /** How often the streamed surface mesh recentres (in cells). */
 export const SURFACE_CHUNK_CELLS = 8;
 
+/**
+ * Seed values for the surface material. Everything except the endpoint tints is
+ * overwritten from the active background by `applySurfaceThemeUniforms`.
+ */
 export const surfaceVisual = {
-  fill: '#FFFFFF',
-  /** Subtle grid lines that stay visible against the pale canvas. */
-  grid: '#EBEBEB',
+  fill: '#F7F4ED',
+  /** Grid lines you feel rather than read — 4% off the fill. */
+  grid: '#F5F5F5',
   /** Oldest object on the surface. */
-  firstCell: '#22C55E',
+  firstCell: '#2E7A70',
   /** Newest object on the surface. */
-  lastCell: '#F97316',
+  lastCell: '#DA6A1E',
 } as const;
