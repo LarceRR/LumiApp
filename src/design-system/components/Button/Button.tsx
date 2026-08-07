@@ -2,7 +2,8 @@ import { memo, type ReactElement } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 
-import { colors } from '../../colors/colors';
+import type { ThemeColors } from '../../colors/themes';
+import { useThemeColors } from '../../colors/themeStore';
 import { radius } from '../../radius/radius';
 import { shadows } from '../../shadows/shadows';
 import { layout, spacing } from '../../spacing/spacing';
@@ -22,19 +23,29 @@ export type ButtonProps = {
   readonly testID?: string;
 };
 
-const BACKGROUNDS: Readonly<Record<ButtonVariant, string>> = {
-  primary: colors.accent,
-  secondary: colors.surfaceRaised,
-  ghost: 'transparent',
-  danger: colors.negative,
-};
+function backgroundFor(variant: ButtonVariant, theme: ThemeColors): string {
+  switch (variant) {
+    case 'primary':
+      return theme.accent;
+    case 'secondary':
+      return theme.surfaceRaised;
+    case 'danger':
+      return theme.negative;
+    default:
+      return 'transparent';
+  }
+}
 
-const LABEL_COLORS: Readonly<Record<ButtonVariant, string>> = {
-  primary: colors.textInverted,
-  secondary: colors.textPrimary,
-  ghost: colors.textPrimary,
-  danger: colors.textInverted,
-};
+function labelColorFor(variant: ButtonVariant, theme: ThemeColors): string {
+  switch (variant) {
+    case 'primary':
+      return theme.accentOn;
+    case 'danger':
+      return theme.textInverted;
+    default:
+      return theme.textPrimary;
+  }
+}
 
 function ButtonComponent({
   label,
@@ -47,8 +58,9 @@ function ButtonComponent({
   testID,
 }: ButtonProps): ReactElement {
   const feedback = usePressFeedback();
+  const theme = useThemeColors();
   const inactive = disabled || loading;
-  const labelColor = LABEL_COLORS[variant];
+  const labelColor = labelColorFor(variant, theme);
 
   return (
     <Animated.View style={feedback.animatedStyle}>
@@ -65,8 +77,11 @@ function ButtonComponent({
         style={[
           styles.base,
           compact ? styles.compact : styles.regular,
-          { backgroundColor: BACKGROUNDS[variant] },
-          variant === 'secondary' && styles.bordered,
+          { backgroundColor: backgroundFor(variant, theme) },
+          variant === 'secondary' && {
+            borderWidth: StyleSheet.hairlineWidth,
+            borderColor: theme.surfaceDivider,
+          },
           variant === 'primary' && shadows.low,
           inactive && styles.inactive,
         ]}
@@ -100,10 +115,6 @@ const styles = StyleSheet.create({
   compact: {
     minHeight: layout.controlHeightCompact,
     paddingHorizontal: spacing.lg,
-  },
-  bordered: {
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.surfaceDivider,
   },
   inactive: {
     opacity: 0.45,

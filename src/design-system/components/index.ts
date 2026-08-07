@@ -8,12 +8,19 @@ export type { ColorSwatchesProps } from './ColorSwatches/ColorSwatches';
 export { ColorSwatches, DEFAULT_SWATCHES } from './ColorSwatches/ColorSwatches';
 export { Divider } from './Divider/Divider';
 export { EmptyState } from './EmptyState/EmptyState';
-export { GlassSurface } from './GlassSurface/GlassSurface';
+export type { FloatingAddButtonProps } from './FloatingAddButton/FloatingAddButton';
+export { FloatingAddButton } from './FloatingAddButton/FloatingAddButton';
+export { GlassSurface, isLiquidGlassSurfaceAvailable } from './GlassSurface/GlassSurface';
 export { IconButton } from './IconButton/IconButton';
 export { ListRow } from './ListRow/ListRow';
 export { Modal } from './Modal/Modal';
 export { usePressFeedback } from './Pressable/usePressFeedback';
 export { Screen } from './Screen/Screen';
+export type {
+  SegmentedControlOption,
+  SegmentedControlProps,
+} from './SegmentedControl/SegmentedControl';
+export { SegmentedControl } from './SegmentedControl/SegmentedControl';
 export type { SliderProps } from './Slider/Slider';
 export { Slider } from './Slider/Slider';
 export { Switch } from './Switch/Switch';

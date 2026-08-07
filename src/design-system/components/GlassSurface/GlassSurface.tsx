@@ -3,7 +3,7 @@ import { GlassView, isGlassEffectAPIAvailable, isLiquidGlassAvailable } from 'ex
 import { memo, type ReactElement, type ReactNode } from 'react';
 import { Platform, type StyleProp, StyleSheet, View, type ViewStyle } from 'react-native';
 
-import { colors } from '../../colors/colors';
+import { useIsDarkTheme, useThemeColors } from '../../colors/themeStore';
 import { radius } from '../../radius/radius';
 import { shadows } from '../../shadows/shadows';
 
@@ -18,7 +18,7 @@ export type GlassSurfaceProps = {
  * Resolved once at module scope: the capability cannot change at runtime, and
  * probing it per render costs a native bridge call on every frame of a list.
  */
-const LIQUID_GLASS_AVAILABLE = (() => {
+export const LIQUID_GLASS_AVAILABLE = (() => {
   if (Platform.OS !== 'ios') {
     return false;
   }
@@ -29,6 +29,11 @@ const LIQUID_GLASS_AVAILABLE = (() => {
     return false;
   }
 })();
+
+/** True when a control can render as real system Liquid Glass. */
+export function isLiquidGlassSurfaceAvailable(): boolean {
+  return LIQUID_GLASS_AVAILABLE;
+}
 
 const BLUR_INTENSITY = Platform.OS === 'ios' ? 80 : 24;
 
@@ -43,6 +48,9 @@ function GlassSurfaceComponent({
   cornerRadius = radius.xl,
   interactive = false,
 }: GlassSurfaceProps): ReactElement {
+  const theme = useThemeColors();
+  const isDark = useIsDarkTheme();
+
   if (LIQUID_GLASS_AVAILABLE) {
     return (
       <GlassView
@@ -60,9 +68,13 @@ function GlassSurfaceComponent({
       <View
         style={[
           styles.shell,
-          styles.androidFill,
           shadows.medium,
-          { borderRadius: cornerRadius },
+          {
+            borderRadius: cornerRadius,
+            backgroundColor: theme.glassFillAndroid,
+            borderWidth: StyleSheet.hairlineWidth,
+            borderColor: theme.glassRimAndroid,
+          },
           style,
         ]}
       >
@@ -75,12 +87,12 @@ function GlassSurfaceComponent({
     <View style={[styles.shell, shadows.medium, { borderRadius: cornerRadius }, style]}>
       <BlurView
         intensity={BLUR_INTENSITY}
-        tint="systemChromeMaterial"
+        tint={isDark ? 'systemChromeMaterialDark' : 'systemChromeMaterialLight'}
         style={StyleSheet.absoluteFillObject}
       />
       <View
         pointerEvents="none"
-        style={[styles.rim, { borderRadius: cornerRadius, borderColor: colors.glassRim }]}
+        style={[styles.rim, { borderRadius: cornerRadius, borderColor: theme.glassRim }]}
       />
       <View style={styles.content}>{children}</View>
     </View>
@@ -92,11 +104,6 @@ export const GlassSurface = memo(GlassSurfaceComponent);
 const styles = StyleSheet.create({
   shell: {
     overflow: 'hidden',
-  },
-  androidFill: {
-    backgroundColor: colors.glassFillAndroid,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.glassRimAndroid,
   },
   rim: {
     ...StyleSheet.absoluteFillObject,
