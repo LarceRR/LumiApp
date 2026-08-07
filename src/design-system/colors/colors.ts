@@ -1,60 +1,46 @@
-import { alpha, palette, withAlpha } from './palette';
+import { colorRamps } from './palette';
+import { lightScene, lightTheme } from './themes';
 
-export const colors = {
-  surface: palette.stone050,
-  surfaceRaised: palette.stone000,
-  surfaceSunken: palette.stone100,
-  surfaceDivider: withAlpha(palette.ink800, alpha.subtle),
-
-  textPrimary: palette.ink800,
-  textSecondary: palette.ink400,
-  textTertiary: palette.ink200,
-  textInverted: palette.stone000,
-
-  accent: palette.ember500,
-  accentSoft: withAlpha(palette.ember400, alpha.subtle),
-  accentPressed: palette.ember400,
-
-  positive: palette.moss500,
-  negative: palette.crimson500,
-
-  glassTint: withAlpha(palette.stone050, alpha.medium),
-  glassRim: withAlpha(palette.white, alpha.medium),
-  glassRimAndroid: withAlpha(palette.ink800, alpha.faint),
-  glassFillAndroid: withAlpha(palette.stone050, alpha.strong),
-
-  controlActive: palette.ink800,
-  controlInactive: withAlpha(palette.ink800, alpha.medium),
-
-  scrim: withAlpha(palette.ink900, alpha.medium),
-  skeleton: withAlpha(palette.ink800, alpha.faint),
-} as const;
+export { alpha, colorRamps, legacyPalette, withAlpha } from './palette';
+export type { ColorScheme, SceneColors, ThemeColors } from './themes';
+export { darkScene, darkTheme, lightScene, lightTheme, sceneThemes, themes } from './themes';
+export type { ThemeMode } from './themeStore';
+export {
+  currentSceneColors,
+  currentScheme,
+  currentThemeColors,
+  resolveScheme,
+  THEME_MODES,
+  useColorSchemeToken,
+  useIsDarkTheme,
+  useSceneColors,
+  useSystemColorSchemeSync,
+  useThemeColors,
+  useThemeMode,
+  useThemeStore,
+} from './themeStore';
 
 /**
- * Scene colours are kept separate from UI tokens — they tint objects on the surface.
+ * Raw ramps, old names included.
+ *
+ * @deprecated Prefer `useThemeColors()` for anything a user can see.
  */
-export const sceneColors = {
-  background: palette.stone050,
-  surfaceBase: '#DFD8C9',
-  surfaceDeep: '#C3BAA6',
-  surfaceBreath: '#FFF1DA',
-  /** Cell guides: visible enough to read as a grid, never as a table. */
-  surfaceGrid: '#AEA48C',
-  /** Marks the centre of a cell — the exact spot an object stands on. */
-  surfaceDot: '#8C8168',
-  /** Contact shadow under an object; darker than the surface, never black. */
-  shadow: '#7A705B',
-  keyLight: '#FFF4E2',
-  fillLight: '#CFD8E4',
-  fireCore: '#E89200',
-  /** Warm orange emissive for Flame_Core (Blender lambert1). */
-  fireCoreEmissive: '#FF8A1F',
-  fireShell: '#FE4F00',
-  fireEmissive: '#FF8A1F',
-  fireLight: '#FEC200',
-  cloudBody: palette.slate300,
-  cloudEdge: palette.slate500,
-  selection: palette.ember300,
-} as const;
+export const palette = colorRamps;
 
-export { alpha, palette, withAlpha };
+/**
+ * Static light-theme tokens.
+ *
+ * Kept because dozens of `StyleSheet.create` calls capture colours at module
+ * scope, and those cannot react to a theme switch anyway. Anything that must
+ * follow the theme uses `useThemeColors()` and an inline style.
+ *
+ * @deprecated Use `useThemeColors()`.
+ */
+export const colors = lightTheme;
+
+/**
+ * Static light scene tint.
+ *
+ * @deprecated Use `useSceneColors()` / `currentSceneColors()`.
+ */
+export const sceneColors = lightScene;
