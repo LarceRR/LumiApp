@@ -40,6 +40,28 @@ export const surfaceObjectMotion = {
     spinTurns: 2,
   },
 
+  /**
+   * Tapping an existing object.
+   *
+   * The camera does *not* orbit here: it closes in and holds heading, and the
+   * object turns to meet it. Orbiting the camera reads as "the world moved";
+   * turning the object reads as "it noticed you", which is the intent.
+   */
+  inspect: {
+    approachMs: durations.deliberate,
+    /** Closer than a spawn reveal — this is a single object, not a moment. */
+    distanceFactor: 0.32,
+    /**
+     * Share of the viewport the sheet covers. The look-at point drops by
+     * enough to park the subject in the clear strip above it.
+     */
+    sheetShare: 0.56,
+    /** Fraction of the visible height the subject is lifted by. */
+    screenLiftFactor: 0.26,
+    /** Half turn: resting surface pose → facing the viewer. */
+    turns: 0.5,
+  },
+
   stateTransitionMs: durations.base,
   removalMs: durations.fast,
 

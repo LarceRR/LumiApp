@@ -4,6 +4,9 @@ import { easeInOutCubicBezier, easeOutCubicBezier } from './easing';
 
 export type FocusTourPhase = 'approach' | 'reveal';
 
+/** `spawn` drops a brand-new object in; `inspect` zooms an existing one. */
+export type FocusTourMode = 'spawn' | 'inspect';
+
 export type FocusTourState = {
   readonly focusTarget: OrbitTarget;
   readonly savedTarget: OrbitTarget;
@@ -23,7 +26,15 @@ export type FocusTourState = {
   readonly launchSeconds: number;
   readonly fallSeconds: number;
   readonly spinTurns: number;
+  /** Defaults to `spawn` so older callers and fixtures keep working. */
+  readonly mode?: FocusTourMode;
+  /** Turns the object rotates through while the camera closes in (inspect). */
+  readonly inspectTurns?: number;
 };
+
+export function focusTourMode(tour: FocusTourState): FocusTourMode {
+  return tour.mode ?? 'spawn';
+}
 
 /** Camera hold after approach equals remaining reveal after the overlap. */
 export function focusTourHoldSeconds(tour: FocusTourState): number {
@@ -50,6 +61,23 @@ export function focusTourRevealStart(tour: FocusTourState): number {
 /** Seconds into launch→fall. Negative while still grounded. */
 export function focusTourRevealElapsed(tour: FocusTourState): number {
   return tour.elapsedSeconds - focusTourRevealStart(tour);
+}
+
+/**
+ * Extra yaw applied to the object itself while the camera closes in.
+ *
+ * Only meaningful for `inspect`: the object rotates out of its resting surface
+ * pose and into a view pose, finishing exactly as the zoom lands.
+ */
+export function focusTourInspectYaw(tour: FocusTourState): number {
+  if (focusTourMode(tour) !== 'inspect') {
+    return 0;
+  }
+
+  const turns = tour.inspectTurns ?? 0;
+  const progress = Math.min(1, tour.elapsedSeconds / Math.max(tour.approachSeconds, 1e-6));
+
+  return easeInOutCubicBezier(progress) * turns * Math.PI * 2;
 }
 
 /**
