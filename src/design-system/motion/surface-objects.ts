@@ -40,6 +40,26 @@ export const surfaceObjectMotion = {
     spinTurns: 2,
   },
 
+  /**
+   * Tap-to-inspect. The camera does not orbit here — it only closes in and
+   * drops its look-at point, so the object rises into the free area above the
+   * sheet. The object itself does the turning.
+   */
+  inspect: {
+    /** Camera distance as a factor of the default framing. */
+    distanceFactor: 0.34,
+    /** Share of the viewport the details sheet claims. */
+    sheetScreenFraction: 0.56,
+    /** Surface pose → view pose rotation, roughly the length of the zoom. */
+    rotateMs: 640,
+  },
+
+  /** Framing applied when the app opens or a session starts. */
+  open: {
+    /** Close enough to read the newest object's face, far enough to see context. */
+    distanceFactor: 0.6,
+  },
+
   stateTransitionMs: durations.base,
   removalMs: durations.fast,
 

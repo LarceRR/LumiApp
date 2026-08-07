@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { reservesFloatingTabBar, tabScreenBottomPadding } from '@/app/navigation/tabBarLayout';
 
-import { colors } from '../../colors/colors';
+import { useThemeColors } from '../../colors/themeStore';
 import { layout, spacing } from '../../spacing/spacing';
 import { Text } from '../Text/Text';
 
@@ -25,7 +25,9 @@ function ScreenComponent({
   reserveTabBar = reservesFloatingTabBar(),
 }: ScreenProps): ReactElement {
   const insets = useSafeAreaInsets();
+  const theme = useThemeColors();
   const bottomPadding = tabScreenBottomPadding(insets.bottom, reserveTabBar);
+  const background = { backgroundColor: theme.surface };
 
   const header =
     title === undefined ? null : (
@@ -41,7 +43,7 @@ function ScreenComponent({
 
   if (!scroll) {
     return (
-      <View style={[styles.root, { paddingTop: insets.top + spacing.md }]}>
+      <View style={[styles.root, background, { paddingTop: insets.top + spacing.md }]}>
         {header}
         <View style={[styles.flexBody, { paddingBottom: bottomPadding }]}>{children}</View>
       </View>
@@ -50,7 +52,7 @@ function ScreenComponent({
 
   return (
     <ScrollView
-      style={styles.root}
+      style={[styles.root, background]}
       contentContainerStyle={[
         styles.scrollBody,
         { paddingTop: insets.top + spacing.md, paddingBottom: bottomPadding },
@@ -72,7 +74,6 @@ export const Screen = memo(ScreenComponent);
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: colors.surface,
   },
   scrollBody: {
     paddingHorizontal: layout.screenGutter,

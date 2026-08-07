@@ -10,11 +10,15 @@ import {
   qualityProfile,
 } from '../systems/qualityTier';
 
+/**
+ * Frame rate is the only metric worth surfacing.
+ *
+ * Draw calls and triangle counts were never wired to the renderer (they read a
+ * constant zero) and, with a single instanced fire field, they would not change
+ * anyway. One honest number beats three decorative ones.
+ */
 export type SceneMetrics = {
   readonly fps: number;
-  readonly drawCalls: number;
-  readonly triangles: number;
-  readonly jsFrameMs: number;
 };
 
 type SceneState = {
@@ -30,7 +34,7 @@ type SceneState = {
   setInteracting: (isInteracting: boolean) => void;
 };
 
-const IDLE_METRICS: SceneMetrics = { fps: 0, drawCalls: 0, triangles: 0, jsFrameMs: 0 };
+const IDLE_METRICS: SceneMetrics = { fps: 0 };
 
 export const useSceneStore = create<SceneState>()((set) => ({
   quality: initialQualityProfile(),
@@ -46,3 +50,4 @@ export const useSceneStore = create<SceneState>()((set) => ({
 
 export const selectQuality = (state: SceneState): QualityProfile => state.quality;
 export const selectMetrics = (state: SceneState): SceneMetrics => state.metrics;
+export const selectFps = (state: SceneState): number => state.metrics.fps;

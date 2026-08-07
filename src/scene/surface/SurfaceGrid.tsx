@@ -3,6 +3,7 @@ import { useFrame, useThree } from '@react-three/fiber/native';
 import { memo, type ReactElement, useLayoutEffect, useMemo, useRef } from 'react';
 import { type Group, type Mesh, NoToneMapping, PlaneGeometry } from 'three';
 
+import { useColorSchemeToken } from '@/design-system/colors/colors';
 import { cameraMotion } from '@/design-system/motion/camera';
 import {
   selectSurfaceBackground,
@@ -19,6 +20,7 @@ import {
   applySurfaceThemeUniforms,
   createSurfaceGridMaterial,
 } from './surfaceGridMaterial';
+import { resolveSurfaceBackground } from './surfaceTheme';
 
 function SurfaceGridComponent(): ReactElement {
   const fillRef = useRef<Group>(null);
@@ -26,7 +28,8 @@ function SurfaceGridComponent(): ReactElement {
   const lastSpanRef = useRef(0);
   const gl = useThree((state) => state.gl);
   const viewport = useThree((state) => state.viewport);
-  const background = useSettingsStore(selectSurfaceBackground);
+  const scheme = useColorSchemeToken();
+  const background = resolveSurfaceBackground(useSettingsStore(selectSurfaceBackground), scheme);
   const surfaceMaterial = useMemo(() => createSurfaceGridMaterial(), []);
 
   useLayoutEffect(() => {

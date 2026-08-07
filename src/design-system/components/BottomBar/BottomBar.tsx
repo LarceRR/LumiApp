@@ -12,7 +12,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { getTabGlyphs } from '@/app/navigation/tabRoutes';
 
-import { colors } from '../../colors/colors';
+import { useThemeColors } from '../../colors/themeStore';
 import type { IconName } from '../../icons/icons';
 import { durations } from '../../motion/durations';
 import { reanimatedEasing } from '../../motion/easings';
@@ -39,7 +39,10 @@ function TabItem({
   onLongPress,
   accessibilityLabel,
 }: TabItemProps): ReactElement {
+  const theme = useThemeColors();
   const progress = useSharedValue(focused ? 1 : 0);
+  const inactiveColor = theme.controlInactive;
+  const activeColor = theme.controlActive;
 
   useEffect(() => {
     progress.value = withTiming(focused ? 1 : 0, {
@@ -52,9 +55,12 @@ function TabItem({
     transform: [{ translateY: -progress.value * spacing.xxs }],
   }));
 
-  const labelStyle = useAnimatedStyle(() => ({
-    color: interpolateColor(progress.value, [0, 1], [colors.controlInactive, colors.controlActive]),
-  }));
+  const labelStyle = useAnimatedStyle(
+    () => ({
+      color: interpolateColor(progress.value, [0, 1], [inactiveColor, activeColor]),
+    }),
+    [inactiveColor, activeColor],
+  );
 
   return (
     <Pressable
@@ -70,7 +76,7 @@ function TabItem({
         <Ionicons
           name={focused ? glyphs.active : glyphs.inactive}
           size={22}
-          color={focused ? colors.controlActive : colors.controlInactive}
+          color={focused ? activeColor : inactiveColor}
         />
       </Animated.View>
       <Animated.Text style={[styles.label, labelStyle]} numberOfLines={1}>

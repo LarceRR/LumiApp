@@ -1,6 +1,7 @@
 import { memo, type ReactElement } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { colors } from '@/design-system/colors/colors';
+
+import { useThemeColors } from '@/design-system/colors/colors';
 import { Button } from '@/design-system/components/Button/Button';
 import { Divider } from '@/design-system/components/Divider/Divider';
 import { ListRow } from '@/design-system/components/ListRow/ListRow';
@@ -16,6 +17,8 @@ export type ObjectDetailsSheetProps = {
   readonly object: SurfaceObject | null;
   readonly visible: boolean;
   readonly icon: IconName;
+  /** Share of the viewport the sheet claims; the scene frames the object above it. */
+  readonly heightFraction?: number;
   readonly onClose: () => void;
   readonly onSoften: (object: SurfaceObject) => void;
   readonly onToggleFavorite: (object: SurfaceObject) => void;
@@ -38,11 +41,14 @@ function noteOf(object: SurfaceObject): string | null {
 function ObjectDetailsSheetComponent({
   object,
   visible,
+  heightFraction,
   onClose,
   onSoften,
   onToggleFavorite,
   onDelete,
 }: ObjectDetailsSheetProps): ReactElement | null {
+  const theme = useThemeColors();
+
   if (object === null) {
     return null;
   }
@@ -52,7 +58,12 @@ function ObjectDetailsSheetComponent({
   const canSoften = availableTransitions(object.state).includes('soften');
 
   return (
-    <Modal visible={visible} onClose={onClose} title={presentation.title}>
+    <Modal
+      visible={visible}
+      onClose={onClose}
+      title={presentation.title}
+      {...(heightFraction === undefined ? {} : { heightFraction })}
+    >
       <View style={styles.meta}>
         <Text variant="caption">
           {STATE_LABELS[object.state]} · ячейка {object.cell.x}, {object.cell.y}
@@ -65,7 +76,7 @@ function ObjectDetailsSheetComponent({
       <ListRow
         title={object.favorite ? 'В избранном' : 'Добавить в избранное'}
         icon={object.favorite ? icons.favorite : icons.favoriteOutline}
-        iconTint={object.favorite ? colors.accent : colors.textSecondary}
+        iconTint={object.favorite ? theme.accent : theme.textSecondary}
         onPress={() => onToggleFavorite(object)}
       />
 
@@ -78,6 +89,8 @@ function ObjectDetailsSheetComponent({
         />
       ) : null}
 
+      <View style={styles.spacer} />
+
       <Button label="Убрать с поверхности" variant="danger" onPress={() => onDelete(object)} />
     </Modal>
   );
@@ -88,5 +101,10 @@ export const ObjectDetailsSheet = memo(ObjectDetailsSheetComponent);
 const styles = StyleSheet.create({
   meta: {
     gap: spacing.sm,
+  },
+  /** Pushes the destructive action to the bottom of a deliberately tall sheet. */
+  spacer: {
+    flex: 1,
+    minHeight: spacing.md,
   },
 });

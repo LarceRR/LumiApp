@@ -1,30 +1,61 @@
 /**
  * Цвета самой поверхности.
  *
- * Фон настраивается пользователем (Настройки → Сцена), поэтому всё, что красит
- * поверхность — clear-color, `scene.background`, туман, шейдер грида и подложка
- * Canvas — берёт его отсюда, а не из константы.
+ * Фон настраивается пользователем (Настройки → Внешний вид) либо следует за
+ * темой. Всё, что красит поверхность — clear-color, `scene.background`, туман,
+ * шейдер грида и подложка Canvas — берёт его отсюда, а не из константы.
  */
 
-export const DEFAULT_SURFACE_BACKGROUND = '#FFFFFF';
+export type SurfaceScheme = 'light' | 'dark';
+
+/** Тёплая бумага, а не чистый белый: см. docs/design/color-system.md. */
+export const LIGHT_SURFACE_BACKGROUND = '#F7F4ED';
+
+/** Near-black с фиолетовым уклоном — не #000. */
+export const DARK_SURFACE_BACKGROUND = '#121017';
+
+/**
+ * @deprecated Фон по умолчанию теперь зависит от темы.
+ * Используйте `resolveSurfaceBackground(null, scheme)`.
+ */
+export const DEFAULT_SURFACE_BACKGROUND = LIGHT_SURFACE_BACKGROUND;
+
+/** `null` в настройках означает «подстраиваться под тему». */
+export function resolveSurfaceBackground(
+  value: string | null,
+  scheme: SurfaceScheme,
+): string {
+  if (value !== null) {
+    return value;
+  }
+
+  return scheme === 'dark' ? DARK_SURFACE_BACKGROUND : LIGHT_SURFACE_BACKGROUND;
+}
 
 /** Порядок от светлого к тёмному — ровно так их рисует палитра в настройках. */
 export const SURFACE_BACKGROUND_OPTIONS: readonly string[] = [
-  '#FFFFFF',
-  '#F6F6F3',
-  '#EFE7D8',
-  '#E3E9EE',
-  '#C9D2DC',
+  '#FDFBF7',
+  '#F7F4ED',
+  '#EFE9DA',
+  '#E3E7EA',
+  '#C6CDD6',
   '#7C8796',
-  '#3A3F47',
-  '#22252B',
-  '#14100D',
-  '#0B0B0C',
+  '#3A3644',
+  '#272231',
+  '#18151E',
+  '#0C0A0E',
 ];
 
-/** Насколько линии грида уходят от фона: чуть темнее на светлом, светлее на тёмном. */
-const LIGHT_GRID_MIX = 0.08;
-const DARK_GRID_MIX = 0.14;
+/**
+ * Насколько линии грида уходят от фона: чуть темнее на светлом, светлее на
+ * тёмном.
+ *
+ * Ровно вдвое меньше прежних значений (0.08 / 0.14). Сетка должна
+ * *чувствоваться*, а не читаться — иначе поверхность превращается в таблицу и
+ * начинает спорить с объектами.
+ */
+const LIGHT_GRID_MIX = 0.04;
+const DARK_GRID_MIX = 0.07;
 
 type Rgb = { readonly r: number; readonly g: number; readonly b: number };
 
@@ -76,10 +107,7 @@ export function isLightSurface(background: string): boolean {
   return surfaceLuminance(background) > 0.5;
 }
 
-/**
- * Линии грида всегда чуть контрастнее фона и никогда не спорят с объектами.
- * Для белого фона это ровно прежний `#EBEBEB`.
- */
+/** Линии грида всегда чуть контрастнее фона и никогда не спорят с объектами. */
 export function gridColorFor(background: string): string {
   const rgb = parseHex(background);
   const light = isLightSurface(background);

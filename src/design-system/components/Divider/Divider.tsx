@@ -1,7 +1,7 @@
 import { memo, type ReactElement } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { colors } from '../../colors/colors';
+import { useThemeColors } from '../../colors/themeStore';
 import { spacing } from '../../spacing/spacing';
 
 export type DividerProps = {
@@ -9,7 +9,13 @@ export type DividerProps = {
 };
 
 function DividerComponent({ inset = false }: DividerProps): ReactElement {
-  return <View style={[styles.line, inset && styles.inset]} />;
+  const theme = useThemeColors();
+
+  return (
+    <View
+      style={[styles.line, { backgroundColor: theme.surfaceDivider }, inset && styles.inset]}
+    />
+  );
 }
 
 export const Divider = memo(DividerComponent);
@@ -17,7 +23,6 @@ export const Divider = memo(DividerComponent);
 const styles = StyleSheet.create({
   line: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: colors.surfaceDivider,
   },
   inset: {
     marginHorizontal: spacing.lg,

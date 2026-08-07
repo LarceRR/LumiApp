@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { memo, type ReactElement, type ReactNode } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 
-import { colors } from '../../colors/colors';
+import { useThemeColors } from '../../colors/themeStore';
 import { type IconName, icons } from '../../icons/icons';
 import { layout, spacing } from '../../spacing/spacing';
 import { Text } from '../Text/Text';
@@ -20,15 +20,17 @@ function ListRowComponent({
   title,
   subtitle,
   icon,
-  iconTint = colors.textSecondary,
+  iconTint,
   onPress,
   trailing,
 }: ListRowProps): ReactElement {
+  const theme = useThemeColors();
+
   const body = (
     <View style={styles.row}>
       {icon === undefined ? null : (
         <View style={styles.iconWrap}>
-          <Ionicons name={icon} size={20} color={iconTint} />
+          <Ionicons name={icon} size={20} color={iconTint ?? theme.textSecondary} />
         </View>
       )}
       <View style={styles.textWrap}>
@@ -43,7 +45,7 @@ function ListRowComponent({
       </View>
       {trailing ??
         (onPress === undefined ? null : (
-          <Ionicons name={icons.chevronRight} size={18} color={colors.textTertiary} />
+          <Ionicons name={icons.chevronRight} size={18} color={theme.textTertiary} />
         ))}
     </View>
   );

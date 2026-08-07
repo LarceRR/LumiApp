@@ -4,16 +4,24 @@ import type { ReactElement } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { useBootstrap } from '@/app/bootstrap/useBootstrap';
 import { ToastHost } from '@/app/components/ToastHost';
+import { useAuthRedirect } from '@/app/navigation/useAuthRedirect';
 import { AppProviders } from '@/app/providers/AppProviders';
-import { colors } from '@/design-system/colors/colors';
+import {
+  useColorSchemeToken,
+  useSystemColorSchemeSync,
+  useThemeColors,
+} from '@/design-system/colors/colors';
 
 function RootNavigator(): ReactElement {
   const { isReady } = useBootstrap();
+  const theme = useThemeColors();
+
+  useAuthRedirect(isReady);
 
   if (!isReady) {
     return (
-      <View style={styles.splash}>
-        <ActivityIndicator color={colors.textSecondary} size="large" />
+      <View style={[styles.splash, { backgroundColor: theme.surface }]}>
+        <ActivityIndicator color={theme.textSecondary} size="large" />
       </View>
     );
   }
@@ -23,7 +31,7 @@ function RootNavigator(): ReactElement {
       <Stack
         screenOptions={{
           headerShown: false,
-          contentStyle: { backgroundColor: colors.surface },
+          contentStyle: { backgroundColor: theme.surface },
           animation: 'slide_from_right',
         }}
       >
@@ -39,9 +47,12 @@ function RootNavigator(): ReactElement {
 }
 
 export default function RootLayout(): ReactElement {
+  useSystemColorSchemeSync();
+  const scheme = useColorSchemeToken();
+
   return (
     <AppProviders>
-      <StatusBar style="dark" />
+      <StatusBar style={scheme === 'dark' ? 'light' : 'dark'} />
       <RootNavigator />
     </AppProviders>
   );
@@ -52,6 +63,5 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.surface,
   },
 });
