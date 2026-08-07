@@ -25,17 +25,15 @@ export type FloatingAddButtonProps = {
   readonly size?: number;
 };
 
-const DEFAULT_SIZE = 48;
+/** 40pt keeps the control in the same visual family as the avatars. */
+const DEFAULT_SIZE = 40;
 
 /**
  * The single entry point for creating something on the surface.
  *
- * On iOS 26+ this is real system Liquid Glass (`GlassView`). Everywhere else it
- * falls back to a custom control: a translucent themed fill with a hairline rim,
- * which matches the rest of our floating chrome without paying for a blur.
- *
- * The glyph rotates 45° when the menu is open, so the same shape reads as a
- * close affordance without swapping icons.
+ * On iOS 26+ this is real system Liquid Glass (`GlassView`). Older iOS versions
+ * do not expose that API, so they use the compact themed fallback. Other
+ * platforms use the same fallback by design.
  */
 function FloatingAddButtonComponent({
   onPress,

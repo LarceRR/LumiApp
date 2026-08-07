@@ -16,7 +16,7 @@ export type MemberAvatarsProps = {
   readonly currentUserId: string | null;
 };
 
-const AVATAR_SIZE = 32;
+const AVATAR_SIZE = 40;
 /** Насколько левая аватарка заходит на правую. */
 const OVERLAP = 8;
 const RING_WIDTH = 2;

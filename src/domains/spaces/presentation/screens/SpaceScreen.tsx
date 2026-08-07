@@ -32,7 +32,7 @@ import { ObjectDetailsSheet } from '../components/ObjectDetailsSheet';
 import { useSpaces } from '../hooks/useSpaces';
 
 /** Height of the + control, and therefore the gap the menu hangs below. */
-const ADD_BUTTON_SIZE = 48;
+const ADD_BUTTON_SIZE = 40;
 
 /**
  * The scene is the screen. Everything else floats above it, so the surface is
@@ -117,7 +117,7 @@ export function SpaceScreen(): ReactElement {
   const topBarTop = insets.top + spacing.sm;
 
   return (
-    <View style={[styles.root, { backgroundColor: theme.surface }]}>
+    <View style={[styles.root, { backgroundColor: theme.surface }]}> 
       <View style={styles.scene}>
         <SceneView bounds={surface?.bounds ?? null} logger={logger} spaceKey={spaceId} />
       </View>
@@ -130,8 +130,8 @@ export function SpaceScreen(): ReactElement {
         />
       ) : null}
 
-      <View pointerEvents="box-none" style={[styles.topBar, { paddingTop: topBarTop }]}>
-        <View pointerEvents="none" style={styles.topSlot}>
+      <View pointerEvents="box-none" style={[styles.topBar, { paddingTop: topBarTop }]}> 
+        <View pointerEvents="none" style={styles.topSlot}> 
           {showOverlay ? (
             <Text variant="caption" numberOfLines={1}>
               {`${fps} fps`}
