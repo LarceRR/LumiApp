@@ -1,31 +1,38 @@
 import { type ReactElement, useCallback, useMemo, useState } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { floatingChromeBottomInset } from '@/app/navigation/tabBarLayout';
 import { useServices } from '@/app/providers/ContainerProvider';
 import { useUiStore } from '@/app/stores/uiStore';
-import { colors } from '@/design-system/colors/colors';
-import { ActionBar, type ActionBarAction } from '@/design-system/components/ActionBar/ActionBar';
+import { useThemeColors } from '@/design-system/colors/colors';
+import { FloatingAddButton } from '@/design-system/components/FloatingAddButton/FloatingAddButton';
 import { Text } from '@/design-system/components/Text/Text';
 import { icons } from '@/design-system/icons/icons';
 import { layout, spacing } from '@/design-system/spacing/spacing';
+import { surfaceObjectMotion } from '@/design-system/motion/surface-objects';
 import { useAuthStore } from '@/domains/auth/presentation/stores/authStore';
 import { useSettingsStore } from '@/domains/settings/presentation/stores/settingsStore';
+import type { SurfaceObjectKind } from '@/domains/surface-objects/domain/value-objects/SurfaceObjectKind';
 import { useSurfaceObjectActions } from '@/domains/surface-objects/presentation/hooks/useSurfaceObjectActions';
 import { useSurfaceObjectsStore } from '@/domains/surface-objects/presentation/stores/surfaceObjectsStore';
 import { useSurface } from '@/domains/surfaces/presentation/hooks/useSurface';
 import { selectIsSyncing, useRealtimeStore } from '@/infrastructure/realtime/realtimeStore';
 import { useRealtimeSync } from '@/infrastructure/realtime/useRealtimeSync';
 import { SceneView } from '@/scene/SceneView';
-import { useSceneStore } from '@/scene/stores/sceneStore';
+import { useCameraStore } from '@/scene/stores/cameraStore';
+import { selectFps, useSceneStore } from '@/scene/stores/sceneStore';
 import { presentableKinds } from '@/scene/surface-objects/kindPresentation';
 
 import { hasPermission } from '../../domain/services/permissionService';
+import { AddObjectMenu, type AddObjectOption } from '../components/AddObjectMenu';
 import { CreateObjectSheet } from '../components/CreateObjectSheet';
 import { MemberAvatars } from '../components/MemberAvatars';
 import { ObjectDetailsSheet } from '../components/ObjectDetailsSheet';
 import { useSpaces } from '../hooks/useSpaces';
+
+/** Height of the + control, and therefore the gap the menu hangs below. */
+const ADD_BUTTON_SIZE = 48;
 
 /**
  * The scene is the screen. Everything else floats above it, so the surface is
@@ -33,6 +40,7 @@ import { useSpaces } from '../hooks/useSpaces';
  */
 export function SpaceScreen(): ReactElement {
   const insets = useSafeAreaInsets();
+  const theme = useThemeColors();
   const { logger } = useServices();
 
   const { activeSpace, isLoading: spacesLoading } = useSpaces();
@@ -48,35 +56,41 @@ export function SpaceScreen(): ReactElement {
     state.selectedId === null ? null : (state.byId[state.selectedId] ?? null),
   );
   const select = useSurfaceObjectsStore((state) => state.select);
+  const endInspect = useCameraStore((state) => state.endInspect);
   const sheet = useUiStore((state) => state.sheet);
   const openSheet = useUiStore((state) => state.openSheet);
   const closeSheet = useUiStore((state) => state.closeSheet);
 
   const isSyncing = useRealtimeStore(selectIsSyncing);
   const showOverlay = useSettingsStore((state) => state.showPerformanceOverlay);
-  const metrics = useSceneStore((state) => state.metrics);
+  const fps = useSceneStore(selectFps);
 
   const [note, setNote] = useState('');
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const canCreate =
     activeSpace !== null &&
     currentUserId !== null &&
     hasPermission(activeSpace, currentUserId, 'surfaceObject.create');
 
-  const barActions = useMemo<readonly ActionBarAction[]>(
+  const addOptions = useMemo<readonly AddObjectOption[]>(
     () =>
       presentableKinds().map((presentation) => ({
-        id: presentation.kind,
+        kind: presentation.kind,
         label: presentation.createLabel,
         icon: presentation.icon,
         tint: presentation.tint,
-        disabled: !canCreate || actions.isCreating,
-        onPress: () => {
-          setNote('');
-          openSheet({ type: 'createObject', kind: presentation.kind });
-        },
       })),
-    [canCreate, actions.isCreating, openSheet],
+    [],
+  );
+
+  const startCreate = useCallback(
+    (kind: SurfaceObjectKind) => {
+      setMenuOpen(false);
+      setNote('');
+      openSheet({ type: 'createObject', kind });
+    },
+    [openSheet],
   );
 
   const confirmCreate = useCallback(() => {
@@ -88,22 +102,35 @@ export function SpaceScreen(): ReactElement {
     closeSheet();
   }, [sheet, actions, note, closeSheet]);
 
+  // Closing the sheet also gives the camera its framing back: the look-at point
+  // lifts off the sheet offset and the distance eases out.
+  const dismissDetails = useCallback(() => {
+    select(null);
+    endInspect();
+  }, [endInspect, select]);
+
   const isBusy = spacesLoading || (surfaceLoading && surface === null);
+  const topBarTop = insets.top + spacing.sm;
 
   return (
-    <View style={styles.root}>
+    <View style={[styles.root, { backgroundColor: theme.surface }]}>
       <View style={styles.scene}>
         <SceneView bounds={surface?.bounds ?? null} logger={logger} spaceKey={spaceId} />
       </View>
 
-      <View
-        pointerEvents="box-none"
-        style={[styles.topBar, { paddingTop: insets.top + spacing.sm }]}
-      >
-        <View pointerEvents="none" style={styles.status}>
+      {menuOpen ? (
+        <Pressable
+          accessibilityLabel="Закрыть меню добавления"
+          style={StyleSheet.absoluteFill}
+          onPress={() => setMenuOpen(false)}
+        />
+      ) : null}
+
+      <View pointerEvents="box-none" style={[styles.topBar, { paddingTop: topBarTop }]}>
+        <View pointerEvents="none" style={styles.topSlot}>
           {showOverlay ? (
             <Text variant="caption" numberOfLines={1}>
-              {`${metrics.fps} fps · ${metrics.drawCalls} draw · ${metrics.triangles} tri`}
+              {`${fps} fps`}
             </Text>
           ) : null}
           {isSyncing ? (
@@ -112,12 +139,33 @@ export function SpaceScreen(): ReactElement {
             </Text>
           ) : null}
         </View>
-        <MemberAvatars space={activeSpace} currentUserId={currentUserId} />
+
+        <View pointerEvents="box-none" style={styles.topCenter}>
+          <MemberAvatars space={activeSpace} currentUserId={currentUserId} />
+        </View>
+
+        <View pointerEvents="box-none" style={[styles.topSlot, styles.topRight]}>
+          <FloatingAddButton
+            accessibilityLabel={menuOpen ? 'Закрыть меню добавления' : 'Добавить объект'}
+            expanded={menuOpen}
+            disabled={!canCreate || actions.isCreating}
+            size={ADD_BUTTON_SIZE}
+            onPress={() => setMenuOpen((open) => !open)}
+          />
+        </View>
       </View>
+
+      {menuOpen ? (
+        <AddObjectMenu
+          options={addOptions}
+          onSelect={startCreate}
+          top={topBarTop + ADD_BUTTON_SIZE + spacing.sm}
+        />
+      ) : null}
 
       {isBusy ? (
         <View pointerEvents="none" style={styles.loader}>
-          <ActivityIndicator color={colors.textSecondary} size="large" />
+          <ActivityIndicator color={theme.textSecondary} size="large" />
         </View>
       ) : null}
 
@@ -126,10 +174,7 @@ export function SpaceScreen(): ReactElement {
           pointerEvents="none"
           style={[
             styles.notice,
-            {
-              bottom:
-                floatingChromeBottomInset(insets.bottom) + layout.actionBarHeight + spacing.md,
-            },
+            { bottom: floatingChromeBottomInset(insets.bottom) + spacing.md },
           ]}
         >
           <Text variant="caption" align="center">
@@ -137,18 +182,6 @@ export function SpaceScreen(): ReactElement {
           </Text>
         </View>
       ) : null}
-
-      <View
-        pointerEvents="box-none"
-        style={[
-          styles.actionBar,
-          {
-            bottom: floatingChromeBottomInset(insets.bottom),
-          },
-        ]}
-      >
-        <ActionBar actions={barActions} />
-      </View>
 
       <CreateObjectSheet
         visible={sheet.type === 'createObject'}
@@ -163,12 +196,13 @@ export function SpaceScreen(): ReactElement {
         object={selected}
         visible={selectedId !== null}
         icon={icons.favorite}
-        onClose={() => select(null)}
+        heightFraction={surfaceObjectMotion.inspect.sheetScreenFraction}
+        onClose={dismissDetails}
         onSoften={actions.soften}
         onToggleFavorite={actions.toggleFavorite}
         onDelete={(object) => {
           actions.remove(object);
-          select(null);
+          dismissDetails();
         }}
       />
     </View>
@@ -178,7 +212,6 @@ export function SpaceScreen(): ReactElement {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: colors.surface,
   },
   scene: {
     ...StyleSheet.absoluteFillObject,
@@ -190,17 +223,19 @@ const styles = StyleSheet.create({
     top: 0,
     flexDirection: 'row',
     alignItems: 'flex-start',
-    justifyContent: 'space-between',
     gap: spacing.md,
   },
-  status: {
+  topSlot: {
     flex: 1,
     gap: spacing.xxs,
   },
-  actionBar: {
-    position: 'absolute',
-    left: layout.screenGutter,
-    right: layout.screenGutter,
+  topCenter: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: ADD_BUTTON_SIZE,
+  },
+  topRight: {
+    alignItems: 'flex-end',
   },
   loader: {
     ...StyleSheet.absoluteFillObject,

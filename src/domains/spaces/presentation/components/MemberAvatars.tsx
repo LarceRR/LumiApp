@@ -1,12 +1,13 @@
 import { memo, type ReactElement } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { colors, palette } from '@/design-system/colors/colors';
+import { palette, useColorSchemeToken, useThemeColors } from '@/design-system/colors/colors';
 import { Text } from '@/design-system/components/Text/Text';
 import {
   selectSurfaceBackground,
   useSettingsStore,
 } from '@/domains/settings/presentation/stores/settingsStore';
+import { resolveSurfaceBackground } from '@/scene/surface/surfaceTheme';
 
 import type { Space, SpaceMember } from '../../domain/entities/Space';
 
@@ -22,10 +23,10 @@ const RING_WIDTH = 2;
 
 const TINTS = [
   palette.ember500,
+  palette.damson500,
+  palette.verdigris500,
   palette.slate500,
-  palette.moss500,
-  palette.crimson500,
-  palette.ink600,
+  palette.basalt600,
 ] as const;
 
 function initial(name: string): string {
@@ -48,9 +49,10 @@ function tintFor(seed: string): string {
 type AvatarProps = {
   readonly member: SpaceMember;
   readonly ringColor: string | null;
+  readonly labelColor: string;
 };
 
-function Avatar({ member, ringColor }: AvatarProps): ReactElement {
+function Avatar({ member, ringColor, labelColor }: AvatarProps): ReactElement {
   return (
     <View
       accessibilityLabel={member.displayName}
@@ -62,7 +64,7 @@ function Avatar({ member, ringColor }: AvatarProps): ReactElement {
           : { borderWidth: RING_WIDTH, borderColor: ringColor, zIndex: 1, marginRight: -OVERLAP },
       ]}
     >
-      <Text variant="captionStrong" color={colors.textInverted}>
+      <Text variant="captionStrong" color={labelColor}>
         {initial(member.displayName)}
       </Text>
     </View>
@@ -70,12 +72,14 @@ function Avatar({ member, ringColor }: AvatarProps): ReactElement {
 }
 
 /**
- * Участники пространства в правом верхнем углу сцены: сначала ты, потом второй.
+ * Участники пространства по центру сверху: сначала ты, потом второй.
  * Обводка левой аватарки повторяет фон поверхности, поэтому нахлёст читается
- * даже когда фон сменили на тёмный.
+ * в любой теме.
  */
 function MemberAvatarsComponent({ space, currentUserId }: MemberAvatarsProps): ReactElement | null {
-  const background = useSettingsStore(selectSurfaceBackground);
+  const scheme = useColorSchemeToken();
+  const theme = useThemeColors();
+  const background = resolveSurfaceBackground(useSettingsStore(selectSurfaceBackground), scheme);
 
   if (space === null || space.members.length === 0) {
     return null;
@@ -91,8 +95,14 @@ function MemberAvatarsComponent({ space, currentUserId }: MemberAvatarsProps): R
 
   return (
     <View accessibilityLabel="Участники пространства" style={styles.row}>
-      <Avatar member={me} ringColor={partner === null ? null : background} />
-      {partner === null ? null : <Avatar member={partner} ringColor={null} />}
+      <Avatar
+        member={me}
+        ringColor={partner === null ? null : background}
+        labelColor={theme.accentOn}
+      />
+      {partner === null ? null : (
+        <Avatar member={partner} ringColor={null} labelColor={theme.accentOn} />
+      )}
     </View>
   );
 }
