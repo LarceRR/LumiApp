@@ -1,39 +1,45 @@
-import { type ReactElement, useCallback, useMemo, useState } from 'react';
+import { type ReactElement, useCallback, useState } from 'react';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { floatingChromeBottomInset } from '@/app/navigation/tabBarLayout';
 import { useServices } from '@/app/providers/ContainerProvider';
 import { useUiStore } from '@/app/stores/uiStore';
-import { colors } from '@/design-system/colors/colors';
-import { ActionBar, type ActionBarAction } from '@/design-system/components/ActionBar/ActionBar';
+import {
+  GLASS_BUTTON_SIZE,
+  GlassIconButton,
+} from '@/design-system/components/GlassIconButton/GlassIconButton';
 import { Text } from '@/design-system/components/Text/Text';
 import { icons } from '@/design-system/icons/icons';
 import { layout, spacing } from '@/design-system/spacing/spacing';
+import { useTheme } from '@/design-system/theme';
 import { useAuthStore } from '@/domains/auth/presentation/stores/authStore';
 import { useSettingsStore } from '@/domains/settings/presentation/stores/settingsStore';
+import type { SurfaceObjectKind } from '@/domains/surface-objects/domain/value-objects/SurfaceObjectKind';
 import { useSurfaceObjectActions } from '@/domains/surface-objects/presentation/hooks/useSurfaceObjectActions';
 import { useSurfaceObjectsStore } from '@/domains/surface-objects/presentation/stores/surfaceObjectsStore';
 import { useSurface } from '@/domains/surfaces/presentation/hooks/useSurface';
 import { selectIsSyncing, useRealtimeStore } from '@/infrastructure/realtime/realtimeStore';
 import { useRealtimeSync } from '@/infrastructure/realtime/useRealtimeSync';
 import { SceneView } from '@/scene/SceneView';
-import { useSceneStore } from '@/scene/stores/sceneStore';
-import { presentableKinds } from '@/scene/surface-objects/kindPresentation';
+import { selectFps, useSceneStore } from '@/scene/stores/sceneStore';
 
 import { hasPermission } from '../../domain/services/permissionService';
+import { AddObjectMenu } from '../components/AddObjectMenu';
 import { CreateObjectSheet } from '../components/CreateObjectSheet';
 import { MemberAvatars } from '../components/MemberAvatars';
 import { ObjectDetailsSheet } from '../components/ObjectDetailsSheet';
 import { useSpaces } from '../hooks/useSpaces';
 
 /**
- * The scene is the screen. Everything else floats above it, so the surface is
- * never pushed out of view by chrome.
+ * The scene is the screen. Chrome floats above it and is kept to a single row
+ * at the top, so the surface owns the frame instead of being squeezed between
+ * an action bar and a tab bar.
  */
 export function SpaceScreen(): ReactElement {
   const insets = useSafeAreaInsets();
   const { logger } = useServices();
+  const { colors } = useTheme();
 
   const { activeSpace, isLoading: spacesLoading } = useSpaces();
   const spaceId = activeSpace?.id ?? null;
@@ -54,29 +60,25 @@ export function SpaceScreen(): ReactElement {
 
   const isSyncing = useRealtimeStore(selectIsSyncing);
   const showOverlay = useSettingsStore((state) => state.showPerformanceOverlay);
-  const metrics = useSceneStore((state) => state.metrics);
+  const fps = useSceneStore(selectFps);
 
   const [note, setNote] = useState('');
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const canCreate =
     activeSpace !== null &&
     currentUserId !== null &&
     hasPermission(activeSpace, currentUserId, 'surfaceObject.create');
 
-  const barActions = useMemo<readonly ActionBarAction[]>(
-    () =>
-      presentableKinds().map((presentation) => ({
-        id: presentation.kind,
-        label: presentation.createLabel,
-        icon: presentation.icon,
-        tint: presentation.tint,
-        disabled: !canCreate || actions.isCreating,
-        onPress: () => {
-          setNote('');
-          openSheet({ type: 'createObject', kind: presentation.kind });
-        },
-      })),
-    [canCreate, actions.isCreating, openSheet],
+  const topRowTop = insets.top + spacing.sm;
+
+  const startCreate = useCallback(
+    (kind: SurfaceObjectKind) => {
+      setMenuOpen(false);
+      setNote('');
+      openSheet({ type: 'createObject', kind });
+    },
+    [openSheet],
   );
 
   const confirmCreate = useCallback(() => {
@@ -91,19 +93,16 @@ export function SpaceScreen(): ReactElement {
   const isBusy = spacesLoading || (surfaceLoading && surface === null);
 
   return (
-    <View style={styles.root}>
+    <View style={[styles.root, { backgroundColor: colors.surface }]}>
       <View style={styles.scene}>
         <SceneView bounds={surface?.bounds ?? null} logger={logger} spaceKey={spaceId} />
       </View>
 
-      <View
-        pointerEvents="box-none"
-        style={[styles.topBar, { paddingTop: insets.top + spacing.sm }]}
-      >
-        <View pointerEvents="none" style={styles.status}>
+      <View pointerEvents="box-none" style={[styles.topBar, { paddingTop: topRowTop }]}>
+        <View pointerEvents="none" style={styles.side}>
           {showOverlay ? (
             <Text variant="caption" numberOfLines={1}>
-              {`${metrics.fps} fps · ${metrics.drawCalls} draw · ${metrics.triangles} tri`}
+              {`${fps} fps`}
             </Text>
           ) : null}
           {isSyncing ? (
@@ -112,8 +111,32 @@ export function SpaceScreen(): ReactElement {
             </Text>
           ) : null}
         </View>
-        <MemberAvatars space={activeSpace} currentUserId={currentUserId} />
+
+        <View pointerEvents="box-none" style={styles.center}>
+          <MemberAvatars space={activeSpace} currentUserId={currentUserId} />
+        </View>
+
+        <View pointerEvents="box-none" style={styles.sideEnd}>
+          <GlassIconButton
+            icon={icons.add}
+            accessibilityLabel="Добавить объект"
+            disabled={!canCreate || actions.isCreating}
+            onPress={() => {
+              setMenuOpen((open) => !open);
+            }}
+          />
+        </View>
       </View>
+
+      <AddObjectMenu
+        visible={menuOpen}
+        disabled={!canCreate || actions.isCreating}
+        anchorTop={topRowTop + GLASS_BUTTON_SIZE + spacing.sm}
+        onSelect={startCreate}
+        onDismiss={() => {
+          setMenuOpen(false);
+        }}
+      />
 
       {isBusy ? (
         <View pointerEvents="none" style={styles.loader}>
@@ -126,10 +149,7 @@ export function SpaceScreen(): ReactElement {
           pointerEvents="none"
           style={[
             styles.notice,
-            {
-              bottom:
-                floatingChromeBottomInset(insets.bottom) + layout.actionBarHeight + spacing.md,
-            },
+            { bottom: floatingChromeBottomInset(insets.bottom) + spacing.md },
           ]}
         >
           <Text variant="caption" align="center">
@@ -137,18 +157,6 @@ export function SpaceScreen(): ReactElement {
           </Text>
         </View>
       ) : null}
-
-      <View
-        pointerEvents="box-none"
-        style={[
-          styles.actionBar,
-          {
-            bottom: floatingChromeBottomInset(insets.bottom),
-          },
-        ]}
-      >
-        <ActionBar actions={barActions} />
-      </View>
 
       <CreateObjectSheet
         visible={sheet.type === 'createObject'}
@@ -162,7 +170,6 @@ export function SpaceScreen(): ReactElement {
       <ObjectDetailsSheet
         object={selected}
         visible={selectedId !== null}
-        icon={icons.favorite}
         onClose={() => select(null)}
         onSoften={actions.soften}
         onToggleFavorite={actions.toggleFavorite}
@@ -178,7 +185,6 @@ export function SpaceScreen(): ReactElement {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: colors.surface,
   },
   scene: {
     ...StyleSheet.absoluteFillObject,
@@ -190,17 +196,20 @@ const styles = StyleSheet.create({
     top: 0,
     flexDirection: 'row',
     alignItems: 'flex-start',
-    justifyContent: 'space-between',
     gap: spacing.md,
   },
-  status: {
+  side: {
     flex: 1,
     gap: spacing.xxs,
   },
-  actionBar: {
-    position: 'absolute',
-    left: layout.screenGutter,
-    right: layout.screenGutter,
+  center: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: spacing.xs,
+  },
+  sideEnd: {
+    flex: 1,
+    alignItems: 'flex-end',
   },
   loader: {
     ...StyleSheet.absoluteFillObject,

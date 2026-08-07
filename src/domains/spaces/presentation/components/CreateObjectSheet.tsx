@@ -1,12 +1,12 @@
 import { memo, type ReactElement } from 'react';
 import { StyleSheet, TextInput, View } from 'react-native';
 
-import { colors } from '@/design-system/colors/colors';
 import { Button } from '@/design-system/components/Button/Button';
 import { Modal } from '@/design-system/components/Modal/Modal';
 import { Text } from '@/design-system/components/Text/Text';
 import { radius } from '@/design-system/radius/radius';
 import { spacing } from '@/design-system/spacing/spacing';
+import { useTheme } from '@/design-system/theme';
 import { typography } from '@/design-system/typography/typography';
 import type { SurfaceObjectKind } from '@/domains/surface-objects/domain/value-objects/SurfaceObjectKind';
 import { kindPresentation } from '@/scene/surface-objects/kindPresentation';
@@ -34,6 +34,8 @@ function CreateObjectSheetComponent({
   onConfirm,
   onClose,
 }: CreateObjectSheetProps): ReactElement | null {
+  const { colors } = useTheme();
+
   if (kind === null) {
     return null;
   }
@@ -46,7 +48,7 @@ function CreateObjectSheetComponent({
         Опишите момент — он останется в истории вместе с объектом. Место на поверхности выберется
         само.
       </Text>
-      <View style={styles.field}>
+      <View style={[styles.field, { backgroundColor: colors.surfaceSunken }]}>
         <TextInput
           value={note}
           onChangeText={onChangeNote}
@@ -54,7 +56,7 @@ function CreateObjectSheetComponent({
           placeholderTextColor={colors.textTertiary}
           maxLength={NOTE_LIMIT}
           multiline
-          style={styles.input}
+          style={[styles.input, { color: colors.textPrimary }]}
         />
       </View>
       <Button label={presentation.createLabel} onPress={onConfirm} />
@@ -67,7 +69,6 @@ export const CreateObjectSheet = memo(CreateObjectSheetComponent);
 const styles = StyleSheet.create({
   field: {
     borderRadius: radius.md,
-    backgroundColor: colors.surfaceSunken,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
   },

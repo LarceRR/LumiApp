@@ -1,12 +1,14 @@
 import { memo, type ReactElement } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { colors, palette } from '@/design-system/colors/colors';
+import { palette } from '@/design-system/colors/colors';
 import { Text } from '@/design-system/components/Text/Text';
+import { useTheme } from '@/design-system/theme';
 import {
   selectSurfaceBackground,
   useSettingsStore,
 } from '@/domains/settings/presentation/stores/settingsStore';
+import { resolveSurfaceBackground } from '@/scene/surface/surfaceTheme';
 
 import type { Space, SpaceMember } from '../../domain/entities/Space';
 
@@ -22,10 +24,10 @@ const RING_WIDTH = 2;
 
 const TINTS = [
   palette.ember500,
-  palette.slate500,
-  palette.moss500,
-  palette.crimson500,
-  palette.ink600,
+  palette.iris500,
+  palette.sage500,
+  palette.rose500,
+  palette.ink700,
 ] as const;
 
 function initial(name: string): string {
@@ -62,7 +64,7 @@ function Avatar({ member, ringColor }: AvatarProps): ReactElement {
           : { borderWidth: RING_WIDTH, borderColor: ringColor, zIndex: 1, marginRight: -OVERLAP },
       ]}
     >
-      <Text variant="captionStrong" color={colors.textInverted}>
+      <Text variant="captionStrong" color="#FCFBF8">
         {initial(member.displayName)}
       </Text>
     </View>
@@ -70,12 +72,13 @@ function Avatar({ member, ringColor }: AvatarProps): ReactElement {
 }
 
 /**
- * Участники пространства в правом верхнем углу сцены: сначала ты, потом второй.
- * Обводка левой аватарки повторяет фон поверхности, поэтому нахлёст читается
- * даже когда фон сменили на тёмный.
+ * Участники пространства по центру сверху. Обводка левой аватарки повторяет фон
+ * поверхности, поэтому нахлёст читается на любой теме.
  */
 function MemberAvatarsComponent({ space, currentUserId }: MemberAvatarsProps): ReactElement | null {
-  const background = useSettingsStore(selectSurfaceBackground);
+  const { scene } = useTheme();
+  const configured = useSettingsStore(selectSurfaceBackground);
+  const background = resolveSurfaceBackground(configured, scene.background);
 
   if (space === null || space.members.length === 0) {
     return null;

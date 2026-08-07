@@ -15,6 +15,7 @@ export const icons = {
   profileActive: 'person',
   fire: 'flame',
   cloud: 'cloud',
+  add: 'add',
   settings: 'settings-outline',
   billing: 'card-outline',
   close: 'close',

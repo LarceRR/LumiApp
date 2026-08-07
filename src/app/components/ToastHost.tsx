@@ -3,26 +3,21 @@ import { StyleSheet, View } from 'react-native';
 import Animated, { FadeInUp, FadeOutUp } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { colors } from '@/design-system/colors/colors';
 import { Text } from '@/design-system/components/Text/Text';
 import { durations } from '@/design-system/motion';
 import { radius } from '@/design-system/radius/radius';
 import { shadows } from '@/design-system/shadows/shadows';
 import { layout, spacing } from '@/design-system/spacing/spacing';
+import { useTheme } from '@/design-system/theme';
 
 import { useUiStore } from '../stores/uiStore';
 
 const VISIBLE_MS = durations.ambient * 2;
 
-const TONE_COLORS = {
-  neutral: colors.textPrimary,
-  positive: colors.positive,
-  negative: colors.negative,
-} as const;
-
 /** Single, app-wide place transient feedback is shown. */
 export function ToastHost(): ReactElement | null {
   const insets = useSafeAreaInsets();
+  const { colors } = useTheme();
   const toast = useUiStore((state) => state.toast);
   const dismiss = useUiStore((state) => state.dismissToast);
 
@@ -42,15 +37,22 @@ export function ToastHost(): ReactElement | null {
     return null;
   }
 
+  const toneColor =
+    toast.tone === 'positive'
+      ? colors.positive
+      : toast.tone === 'negative'
+        ? colors.negative
+        : colors.textPrimary;
+
   return (
     <View pointerEvents="none" style={[styles.host, { top: insets.top + spacing.xxxl }]}>
       <Animated.View
         key={toast.id}
         entering={FadeInUp}
         exiting={FadeOutUp}
-        style={[styles.toast, shadows.medium]}
+        style={[styles.toast, { backgroundColor: colors.surfaceRaised }, shadows.medium]}
       >
-        <View style={[styles.dot, { backgroundColor: TONE_COLORS[toast.tone] }]} />
+        <View style={[styles.dot, { backgroundColor: toneColor }]} />
         <Text variant="captionStrong" numberOfLines={2} style={styles.message}>
           {toast.message}
         </Text>
@@ -74,7 +76,6 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     paddingHorizontal: spacing.lg,
     borderRadius: radius.pill,
-    backgroundColor: colors.surfaceRaised,
   },
   dot: {
     width: 8,

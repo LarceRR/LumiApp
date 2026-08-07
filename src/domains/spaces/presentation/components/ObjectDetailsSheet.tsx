@@ -1,13 +1,14 @@
 import { memo, type ReactElement } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { colors } from '@/design-system/colors/colors';
+
 import { Button } from '@/design-system/components/Button/Button';
 import { Divider } from '@/design-system/components/Divider/Divider';
 import { ListRow } from '@/design-system/components/ListRow/ListRow';
 import { Modal } from '@/design-system/components/Modal/Modal';
 import { Text } from '@/design-system/components/Text/Text';
-import { type IconName, icons } from '@/design-system/icons/icons';
+import { icons } from '@/design-system/icons/icons';
 import { spacing } from '@/design-system/spacing/spacing';
+import { useTheme } from '@/design-system/theme';
 import type { SurfaceObject } from '@/domains/surface-objects/domain/entities/SurfaceObject';
 import { availableTransitions } from '@/domains/surface-objects/domain/value-objects/SurfaceObjectState';
 import { kindPresentation } from '@/scene/surface-objects/kindPresentation';
@@ -15,7 +16,6 @@ import { kindPresentation } from '@/scene/surface-objects/kindPresentation';
 export type ObjectDetailsSheetProps = {
   readonly object: SurfaceObject | null;
   readonly visible: boolean;
-  readonly icon: IconName;
   readonly onClose: () => void;
   readonly onSoften: (object: SurfaceObject) => void;
   readonly onToggleFavorite: (object: SurfaceObject) => void;
@@ -35,6 +35,11 @@ function noteOf(object: SurfaceObject): string | null {
   return typeof note === 'string' && note.length > 0 ? note : null;
 }
 
+/**
+ * Tall by design: the sheet claims the lower half of the screen and the camera
+ * reframes the object into the strip above it, so the thing being discussed
+ * stays visible while you act on it.
+ */
 function ObjectDetailsSheetComponent({
   object,
   visible,
@@ -43,6 +48,8 @@ function ObjectDetailsSheetComponent({
   onToggleFavorite,
   onDelete,
 }: ObjectDetailsSheetProps): ReactElement | null {
+  const { colors } = useTheme();
+
   if (object === null) {
     return null;
   }
@@ -52,7 +59,7 @@ function ObjectDetailsSheetComponent({
   const canSoften = availableTransitions(object.state).includes('soften');
 
   return (
-    <Modal visible={visible} onClose={onClose} title={presentation.title}>
+    <Modal visible={visible} onClose={onClose} title={presentation.title} size="tall">
       <View style={styles.meta}>
         <Text variant="caption">
           {STATE_LABELS[object.state]} · ячейка {object.cell.x}, {object.cell.y}
@@ -60,14 +67,13 @@ function ObjectDetailsSheetComponent({
         {note === null ? null : <Text variant="body">{note}</Text>}
       </View>
 
-      <Divider />
-
-      <ListRow
-        title={object.favorite ? 'В избранном' : 'Добавить в избранное'}
-        icon={object.favorite ? icons.favorite : icons.favoriteOutline}
-        iconTint={object.favorite ? colors.accent : colors.textSecondary}
+      <Button
+        label={object.favorite ? 'В избранном' : 'Добавить в избранное'}
+        variant={object.favorite ? 'secondary' : 'primary'}
         onPress={() => onToggleFavorite(object)}
       />
+
+      <Divider />
 
       {canSoften ? (
         <ListRow
@@ -78,7 +84,12 @@ function ObjectDetailsSheetComponent({
         />
       ) : null}
 
-      <Button label="Убрать с поверхности" variant="danger" onPress={() => onDelete(object)} />
+      <ListRow
+        title="Убрать с поверхности"
+        icon={icons.trash}
+        iconTint={colors.negative}
+        onPress={() => onDelete(object)}
+      />
     </Modal>
   );
 }
