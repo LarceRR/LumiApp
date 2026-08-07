@@ -2,6 +2,7 @@ import { Canvas } from '@react-three/fiber/native';
 import { memo, type ReactElement, useEffect, useMemo, useRef } from 'react';
 import { useWindowDimensions } from 'react-native';
 
+import { useTheme } from '@/design-system/theme';
 import {
   selectSurfaceBackground,
   useSettingsStore,
@@ -9,12 +10,14 @@ import {
 import type { SurfaceBounds } from '@/domains/surfaces/domain/value-objects/SurfaceBounds';
 import type { Logger } from '@/shared/logger';
 import { cameraConfig, defaultCameraDistance, defaultVisibleRows } from './camera/cameraConfig';
+import { useInitialObjectFraming } from './camera/useInitialFraming';
 import { SurfaceOrbitControls } from './controls/SurfaceOrbitControls';
 import { Scene } from './Scene';
 import { useCameraStore } from './stores/cameraStore';
 import { selectQuality, useSceneStore } from './stores/sceneStore';
 import { cellToWorld } from './surface/cellToWorld';
 import { resolveSurfaceLayout } from './surface/surfaceLayout';
+import { resolveSurfaceBackground } from './surface/surfaceTheme';
 
 export type SceneViewProps = {
   readonly bounds: SurfaceBounds | null;
@@ -25,13 +28,15 @@ export type SceneViewProps = {
 
 function SceneViewComponent({ bounds, logger, spaceKey = null }: SceneViewProps): ReactElement {
   const { height } = useWindowDimensions();
+  const { scene } = useTheme();
   const setDefaultDistance = useCameraStore((state) => state.setDefaultDistance);
   const setMapCenter = useCameraStore((state) => state.setMapCenter);
   const setTarget = useCameraStore((state) => state.setTarget);
-  const background = useSettingsStore(selectSurfaceBackground);
+  const configuredBackground = useSettingsStore(selectSurfaceBackground);
   const quality = useSceneStore(selectQuality);
   const framedSpaceRef = useRef<string | null>(null);
 
+  const background = resolveSurfaceBackground(configuredBackground, scene.background);
   const layout = useMemo(() => resolveSurfaceLayout(bounds), [bounds]);
   const focusWorld = useMemo(() => cellToWorld(layout.focusCell), [layout.focusCell]);
 
@@ -70,6 +75,10 @@ function SceneViewComponent({ bounds, logger, spaceKey = null }: SceneViewProps)
     setTarget,
     spaceKey,
   ]);
+
+  // Declared after the layout effect on purpose: once objects exist, framing
+  // the newest one must win over the surface-centre fallback above.
+  useInitialObjectFraming(spaceKey);
 
   return (
     <SurfaceOrbitControls>

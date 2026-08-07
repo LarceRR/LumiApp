@@ -4,6 +4,7 @@ import { memo, type ReactElement, useLayoutEffect, useMemo, useRef } from 'react
 import { type Group, type Mesh, NoToneMapping, PlaneGeometry } from 'three';
 
 import { cameraMotion } from '@/design-system/motion/camera';
+import { useTheme } from '@/design-system/theme';
 import {
   selectSurfaceBackground,
   useSettingsStore,
@@ -19,6 +20,7 @@ import {
   applySurfaceThemeUniforms,
   createSurfaceGridMaterial,
 } from './surfaceGridMaterial';
+import { resolveSurfaceBackground } from './surfaceTheme';
 
 function SurfaceGridComponent(): ReactElement {
   const fillRef = useRef<Group>(null);
@@ -26,7 +28,9 @@ function SurfaceGridComponent(): ReactElement {
   const lastSpanRef = useRef(0);
   const gl = useThree((state) => state.gl);
   const viewport = useThree((state) => state.viewport);
-  const background = useSettingsStore(selectSurfaceBackground);
+  const { scene } = useTheme();
+  const configuredBackground = useSettingsStore(selectSurfaceBackground);
+  const background = resolveSurfaceBackground(configuredBackground, scene.background);
   const surfaceMaterial = useMemo(() => createSurfaceGridMaterial(), []);
 
   useLayoutEffect(() => {

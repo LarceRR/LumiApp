@@ -2,11 +2,12 @@ import { useFrame } from '@react-three/fiber/native';
 import { memo, type ReactElement, useEffect, useMemo, useRef } from 'react';
 import type { PointLight } from 'three';
 
-import { sceneColors } from '@/design-system/colors/colors';
 import { surfaceObjectMotion } from '@/design-system/motion/surface-objects';
+import { useTheme } from '@/design-system/theme';
 import { useSettingsStore } from '@/domains/settings/presentation/stores/settingsStore';
 import { knownKinds } from '@/domains/surface-objects/domain/value-objects/SurfaceObjectKind';
 import { useSurfaceObjectsStore } from '@/domains/surface-objects/presentation/stores/surfaceObjectsStore';
+import { focusTourInspectYaw } from '@/scene/camera/focusTour';
 import { useCameraStore } from '@/scene/stores/cameraStore';
 import { useSceneStore } from '@/scene/stores/sceneStore';
 import { cellToWorld, type WorldPoint } from '@/scene/surface/cellToWorld';
@@ -14,6 +15,7 @@ import { dampOverMs } from '@/shared/utils/math';
 
 import { isLostInFog, objectFogFactor, viewDepth } from '../core/fogVisibility';
 import { objectAnimationPlaying, objectOpacityTarget } from '../core/objectFocus';
+import { objectYawRadians } from '../core/objectYaw';
 import { selectVisibleObjects } from '../core/selectVisibleObjects';
 import { VoxelFireEmitter } from './fireEmitter';
 import { FIRE_LIGHT, fireLightIntensity } from './fireLight';
@@ -35,6 +37,7 @@ const MAX_FRAME_SECONDS = 0.05;
 function VoxelFireFieldComponent(): ReactElement {
   const tier = useSceneStore((state) => state.quality.tier);
   const settings = useFireSettingsStore((state) => state.settings);
+  const { scene } = useTheme();
 
   const lightRef = useRef<PointLight>(null);
   const emittersRef = useRef(new Map<string, VoxelFireEmitter>());
@@ -58,9 +61,13 @@ function VoxelFireFieldComponent(): ReactElement {
   useFrame((_, delta) => {
     const fire = useFireSettingsStore.getState().settings;
     const reduceMotion = useSettingsStore.getState().reduceMotion;
-    const { orbit } = useCameraStore.getState();
+    const { orbit, focusTour } = useCameraStore.getState();
     const { byId, order, spawningId, selectedId } = useSurfaceObjectsStore.getState();
     const maxInstances = useSceneStore.getState().quality.maxInstancesPerKind;
+
+    // Non-zero only while an inspect tour is running: the focused object turns
+    // out of its resting surface pose to meet the viewer.
+    const inspectYaw = focusTour === null ? 0 : focusTourInspectYaw(focusTour);
 
     const candidates = order.flatMap((id) => {
       const object = byId[id];
@@ -122,7 +129,10 @@ function VoxelFireFieldComponent(): ReactElement {
       emitter.configure(fire, isFocused);
       emitter.update(playing ? simDelta : 0, fire);
 
-      layers.write(emitter, world, fire);
+      // Resting tilt is deterministic per id, so nothing jitters between frames.
+      const yaw = objectYawRadians(item.id) + (isFocused ? inspectYaw : 0);
+
+      layers.write(emitter, world, fire, yaw);
 
       if (isFocused) {
         focusWorld = world;
@@ -156,7 +166,7 @@ function VoxelFireFieldComponent(): ReactElement {
       <primitive object={layers.flameMesh} />
       <pointLight
         ref={lightRef}
-        color={sceneColors.fireLight}
+        color={scene.fireLight}
         distance={FIRE_LIGHT.distance}
         decay={FIRE_LIGHT.decay}
         intensity={0}

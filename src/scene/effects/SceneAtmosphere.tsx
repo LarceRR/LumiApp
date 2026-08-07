@@ -3,21 +3,25 @@ import { useLayoutEffect } from 'react';
 import { Color, Fog } from 'three';
 
 import { cameraMotion } from '@/design-system/motion/camera';
+import { useTheme } from '@/design-system/theme';
 import {
   selectSurfaceBackground,
   useSettingsStore,
 } from '@/domains/settings/presentation/stores/settingsStore';
 import { useCameraStore } from '@/scene/stores/cameraStore';
 import { fogDistanceBounds } from '@/scene/surface/surfaceGridMaterial';
+import { resolveSurfaceBackground } from '@/scene/surface/surfaceTheme';
 
 /**
  * Backdrop + scene fog matching the surface shader, so fires fade into the haze
  * instead of popping when they leave the clear zone. Цвет берётся из настроек
- * сцены, поэтому смена фона перекрашивает и дымку.
+ * сцены (или из активной темы), поэтому смена фона перекрашивает и дымку.
  */
 export function SceneAtmosphere(): null {
   const scene = useThree((state) => state.scene);
-  const background = useSettingsStore(selectSurfaceBackground);
+  const theme = useTheme();
+  const configuredBackground = useSettingsStore(selectSurfaceBackground);
+  const background = resolveSurfaceBackground(configuredBackground, theme.scene.background);
 
   useLayoutEffect(() => {
     const fill = new Color(background);
