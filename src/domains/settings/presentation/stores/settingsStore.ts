@@ -1,19 +1,19 @@
 import { create } from 'zustand';
 
-import { DEFAULT_SURFACE_BACKGROUND } from '@/scene/surface/surfaceTheme';
+import { isThemeMode, type ThemeMode } from '@/design-system/theme';
+import { AUTO_SURFACE_BACKGROUND } from '@/scene/surface/surfaceTheme';
 
 export type SettingsState = {
-  readonly soundEnabled: boolean;
-  readonly hapticsEnabled: boolean;
+  /** system | light | dark. Drives the whole UI token set. */
+  readonly themeMode: ThemeMode;
   /** Honours the OS "reduce motion" preference and the manual override. */
   readonly reduceMotion: boolean;
   readonly showPerformanceOverlay: boolean;
-  /** Фон сцены: clear-color, туман и заливка грида. */
+  /** Фон сцены: clear-color, туман и заливка грида. 'auto' — следовать теме. */
   readonly surfaceBackground: string;
   /** Зелёная и красная клетки под самым старым и самым новым объектом. */
   readonly highlightEndpoints: boolean;
-  setSoundEnabled: (value: boolean) => void;
-  setHapticsEnabled: (value: boolean) => void;
+  setThemeMode: (value: ThemeMode) => void;
   setReduceMotion: (value: boolean) => void;
   setShowPerformanceOverlay: (value: boolean) => void;
   setSurfaceBackground: (value: string) => void;
@@ -22,8 +22,7 @@ export type SettingsState = {
 };
 
 export type PersistedSettings = {
-  readonly soundEnabled: boolean;
-  readonly hapticsEnabled: boolean;
+  readonly themeMode: ThemeMode;
   readonly reduceMotion: boolean;
   readonly showPerformanceOverlay: boolean;
   readonly surfaceBackground: string;
@@ -31,25 +30,28 @@ export type PersistedSettings = {
 };
 
 export const useSettingsStore = create<SettingsState>()((set) => ({
-  soundEnabled: true,
-  hapticsEnabled: true,
+  themeMode: 'system',
   reduceMotion: false,
   showPerformanceOverlay: false,
-  surfaceBackground: DEFAULT_SURFACE_BACKGROUND,
+  surfaceBackground: AUTO_SURFACE_BACKGROUND,
   highlightEndpoints: false,
-  setSoundEnabled: (soundEnabled) => set({ soundEnabled }),
-  setHapticsEnabled: (hapticsEnabled) => set({ hapticsEnabled }),
+  setThemeMode: (themeMode) => set({ themeMode }),
   setReduceMotion: (reduceMotion) => set({ reduceMotion }),
   setShowPerformanceOverlay: (showPerformanceOverlay) => set({ showPerformanceOverlay }),
   setSurfaceBackground: (surfaceBackground) => set({ surfaceBackground }),
   setHighlightEndpoints: (highlightEndpoints) => set({ highlightEndpoints }),
-  hydrate: (values) => set(values),
+  // Persisted payloads predate themeMode, so an unknown value falls back rather
+  // than poisoning the store with a string the theme resolver cannot read.
+  hydrate: (values) =>
+    set({
+      ...values,
+      themeMode: isThemeMode(values.themeMode) ? values.themeMode : 'system',
+    }),
 }));
 
 export function persistedSettings(state: SettingsState): PersistedSettings {
   return {
-    soundEnabled: state.soundEnabled,
-    hapticsEnabled: state.hapticsEnabled,
+    themeMode: state.themeMode,
     reduceMotion: state.reduceMotion,
     showPerformanceOverlay: state.showPerformanceOverlay,
     surfaceBackground: state.surfaceBackground,
@@ -57,6 +59,7 @@ export function persistedSettings(state: SettingsState): PersistedSettings {
   };
 }
 
+export const selectThemeMode = (state: SettingsState): ThemeMode => state.themeMode;
 export const selectSurfaceBackground = (state: SettingsState): string => state.surfaceBackground;
 export const selectHighlightEndpoints = (state: SettingsState): boolean =>
   state.highlightEndpoints;

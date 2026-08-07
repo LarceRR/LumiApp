@@ -1,6 +1,3 @@
-import { useMemo } from 'react';
-import { useColorScheme } from 'react-native';
-
 import {
   type ColorTokens,
   darkColors,
@@ -21,6 +18,16 @@ export type Theme = {
 
 export const THEME_MODES: readonly ThemeMode[] = ['system', 'light', 'dark'];
 
+export const THEME_MODE_LABELS: Readonly<Record<ThemeMode, string>> = {
+  system: 'Как в системе',
+  light: 'Светлая',
+  dark: 'Тёмная',
+};
+
+export function isThemeMode(value: unknown): value is ThemeMode {
+  return value === 'system' || value === 'light' || value === 'dark';
+}
+
 export function isDarkScheme(mode: ThemeMode, systemPrefersDark: boolean): boolean {
   if (mode === 'system') {
     return systemPrefersDark;
@@ -40,15 +47,5 @@ export function themeFor(mode: ThemeMode, systemPrefersDark: boolean): Theme {
   };
 }
 
-/**
- * Active theme for the current render.
- *
- * Deliberately a hook and not a module singleton: `StyleSheet.create` freezes
- * whatever colour it is handed at import time, so a mutable global would go
- * stale the moment the theme changed.
- */
-export function useTheme(mode: ThemeMode): Theme {
-  const scheme = useColorScheme();
-
-  return useMemo(() => themeFor(mode, scheme === 'dark'), [mode, scheme]);
-}
+export const LIGHT_THEME: Theme = themeFor('light', false);
+export const DARK_THEME: Theme = themeFor('dark', true);

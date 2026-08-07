@@ -6,25 +6,37 @@
  * Canvas — берёт его отсюда, а не из константы.
  */
 
-export const DEFAULT_SURFACE_BACKGROUND = '#FFFFFF';
+/** Фон следует активной теме вместо жёстко заданного цвета. */
+export const AUTO_SURFACE_BACKGROUND = 'auto';
+
+export const DEFAULT_SURFACE_BACKGROUND = AUTO_SURFACE_BACKGROUND;
 
 /** Порядок от светлого к тёмному — ровно так их рисует палитра в настройках. */
 export const SURFACE_BACKGROUND_OPTIONS: readonly string[] = [
-  '#FFFFFF',
-  '#F6F6F3',
-  '#EFE7D8',
-  '#E3E9EE',
-  '#C9D2DC',
-  '#7C8796',
-  '#3A3F47',
-  '#22252B',
-  '#14100D',
-  '#0B0B0C',
+  '#FCFBF8',
+  '#F7F6F2',
+  '#F0EEE8',
+  '#E4E1D8',
+  '#E4E1F2',
+  '#C8C3E2',
+  '#6B638F',
+  '#312E3C',
+  '#1C1A23',
+  '#0D0C11',
 ];
 
-/** Насколько линии грида уходят от фона: чуть темнее на светлом, светлее на тёмном. */
-const LIGHT_GRID_MIX = 0.08;
-const DARK_GRID_MIX = 0.14;
+/** `auto` → цвет сцены из активной темы, иначе выбор пользователя. */
+export function resolveSurfaceBackground(value: string, themeBackground: string): string {
+  return value === AUTO_SURFACE_BACKGROUND ? themeBackground : value;
+}
+
+/**
+ * Насколько линии грида уходят от фона: чуть темнее на светлом, светлее на
+ * тёмном. Половина прежней силы — грид должен читаться боковым зрением, а не
+ * спорить с объектами на поверхности.
+ */
+const LIGHT_GRID_MIX = 0.04;
+const DARK_GRID_MIX = 0.07;
 
 type Rgb = { readonly r: number; readonly g: number; readonly b: number };
 
@@ -76,10 +88,7 @@ export function isLightSurface(background: string): boolean {
   return surfaceLuminance(background) > 0.5;
 }
 
-/**
- * Линии грида всегда чуть контрастнее фона и никогда не спорят с объектами.
- * Для белого фона это ровно прежний `#EBEBEB`.
- */
+/** Линии грида всегда чуть контрастнее фона и никогда не спорят с объектами. */
 export function gridColorFor(background: string): string {
   const rgb = parseHex(background);
   const light = isLightSurface(background);
