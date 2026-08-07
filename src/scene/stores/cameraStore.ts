@@ -3,6 +3,7 @@ import { create } from 'zustand';
 import { cameraMotion } from '@/design-system/motion/camera';
 import { surfaceObjectMotion } from '@/design-system/motion/surface-objects';
 import type { Cell } from '@/domains/surface-objects/domain/value-objects/Cell';
+import { visibleHeightAt } from '@/scene/camera/cameraConfig';
 import {
   type FocusTourState,
   focusTourFrame,
@@ -53,6 +54,8 @@ type CameraState = {
   setDefaultDistance: (distance: number) => void;
   setMapCenter: (center: OrbitTarget, cell: Cell) => void;
   setTarget: (target: OrbitTarget) => void;
+  /** Snap the camera in front of an object's face. No animation. */
+  frameObject: (target: OrbitTarget, faceYaw: number) => void;
   orbitBy: (deltaAzimuth: number, deltaElevation: number) => void;
   panBy: (deltaX: number, deltaZ: number) => void;
   zoomByFactor: (scale: number) => void;
@@ -130,6 +133,25 @@ export const useCameraStore = create<CameraState>()((set, get) => ({
         target,
       },
     }));
+  },
+  frameObject: (target, faceYaw) => {
+    const { defaultDistance } = get();
+
+    set({
+      recenter: null,
+      focusTour: null,
+      orbitVelocity: ZERO_ORBIT_VELOCITY,
+      panVelocity: ZERO_PAN_VELOCITY,
+      orbit: {
+        azimuth: orbitAzimuthFacing(faceYaw),
+        elevation: (cameraMotion.defaultElevationDeg * Math.PI) / 180,
+        distance: clampDistance(
+          defaultDistance * surfaceObjectMotion.spawn.focusDistanceFactor,
+          defaultDistance,
+        ),
+        target: { ...target },
+      },
+    });
   },
   orbitBy: (deltaAzimuth, deltaElevation) => {
     if (get().focusTour !== null) {
@@ -253,26 +275,38 @@ export const useCameraStore = create<CameraState>()((set, get) => ({
   },
   startFocusTour: (focusTarget, faceYaw, options) => {
     const { orbit, defaultDistance } = get();
-    const { spawn } = surfaceObjectMotion;
-    const inspect = options?.mode === 'inspect';
-    // Radially symmetric objects — azimuth from yaw still uses local +X as the
-    // facing reference, so framing stays deterministic.
-    const focusAzimuth = orbitAzimuthFacing(faceYaw);
+    const { spawn, inspect } = surfaceObjectMotion;
+    const isInspect = options?.mode === 'inspect';
+
+    // Spawn swings the camera around to meet the new object's face. Inspect
+    // holds heading and lets the object turn instead — see focusTourInspectYaw.
+    const focusAzimuth = isInspect ? orbit.azimuth : orbitAzimuthFacing(faceYaw);
+    const focusDistance = clampDistance(
+      defaultDistance * (isInspect ? inspect.distanceFactor : spawn.focusDistanceFactor),
+      defaultDistance,
+    );
+
+    // Looking below the object pushes it up the frame, into the strip of screen
+    // the tall sheet leaves clear.
+    const lift = isInspect ? visibleHeightAt(focusDistance) * inspect.screenLiftFactor : 0;
+
     const tour: FocusTourState = {
-      focusTarget: { ...focusTarget },
+      focusTarget: { x: focusTarget.x, y: focusTarget.y - lift, z: focusTarget.z },
       savedTarget: { ...orbit.target },
       savedDistance: orbit.distance,
       savedAzimuth: orbit.azimuth,
-      focusDistance: clampDistance(defaultDistance * spawn.focusDistanceFactor, defaultDistance),
+      focusDistance,
       faceYaw,
       focusAzimuth,
       elapsedSeconds: 0,
-      approachSeconds: spawn.approachMs / 1000,
-      revealSeconds: inspect ? 0 : spawn.revealMs / 1000,
-      overlapSeconds: inspect ? 0 : spawn.overlapMs / 1000,
-      launchSeconds: inspect ? 0 : spawn.launchMs / 1000,
-      fallSeconds: inspect ? 0 : spawn.fallMs / 1000,
-      spinTurns: inspect ? 0 : spawn.spinTurns,
+      approachSeconds: (isInspect ? inspect.approachMs : spawn.approachMs) / 1000,
+      revealSeconds: isInspect ? 0 : spawn.revealMs / 1000,
+      overlapSeconds: isInspect ? 0 : spawn.overlapMs / 1000,
+      launchSeconds: isInspect ? 0 : spawn.launchMs / 1000,
+      fallSeconds: isInspect ? 0 : spawn.fallMs / 1000,
+      spinTurns: isInspect ? 0 : spawn.spinTurns,
+      mode: isInspect ? 'inspect' : 'spawn',
+      inspectTurns: isInspect ? inspect.turns : 0,
     };
 
     get().stopAllVelocity();

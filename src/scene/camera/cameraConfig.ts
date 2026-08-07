@@ -23,6 +23,15 @@ export function defaultVisibleRows(screenHeight: number): number {
   return Math.max(1, screenHeight / SURFACE_CELL_SIZE_PX);
 }
 
+/**
+ * World-space height of the frustum at a given distance.
+ * Lets screen-space framing decisions ("clear the bottom half") be expressed
+ * in world units without guessing.
+ */
+export function visibleHeightAt(distance: number): number {
+  return 2 * distance * Math.tan((cameraConfig.fov * DEG_TO_RAD) / 2);
+}
+
 export function orbitPosition(orbit: {
   readonly azimuth: number;
   readonly elevation: number;
