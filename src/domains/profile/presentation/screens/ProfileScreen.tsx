@@ -32,7 +32,7 @@ export function ProfileScreen(): ReactElement {
       <BlurCard>
         <ListRow
           title="Настройки"
-          subtitle="Анимации, звук, отклик"
+          subtitle="Тема, сцена, анимации"
           icon={icons.settings}
           onPress={() => router.push('/settings')}
         />

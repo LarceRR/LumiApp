@@ -13,8 +13,8 @@ import { cellToWorld, type WorldPoint } from '@/scene/surface/cellToWorld';
 import { dampOverMs, shortestAngleDelta } from '@/shared/utils/math';
 
 import { isLostInFog, objectFogFactor, viewDepth } from '../core/fogVisibility';
-import { objectAnimationPlaying, objectOpacityTarget } from '../core/objectFocus';
 import { objectYawFacingCamera } from '../core/objectFacing';
+import { objectAnimationPlaying, objectOpacityTarget } from '../core/objectFocus';
 import { objectYawRadians } from '../core/objectYaw';
 import { selectVisibleObjects } from '../core/selectVisibleObjects';
 import { VoxelFireEmitter } from './fireEmitter';
@@ -96,8 +96,8 @@ function VoxelFireFieldComponent(): ReactElement {
     const alive = new Set<string>();
     let focusWorld: WorldPoint | null = null;
 
-    // Everything selected turns to meet the camera; everything else relaxes back
-    // to the pose it holds on the surface.
+    // The selected fire turns to meet the camera; everything else relaxes back to
+    // the pose it holds on the surface.
     const viewYaw = objectYawFacingCamera(orbit.azimuth);
     const { rotateMs } = surfaceObjectMotion.inspect;
 
@@ -131,7 +131,8 @@ function VoxelFireFieldComponent(): ReactElement {
       );
 
       // Damped along the short arc: the turn lasts about as long as the zoom, and
-      // interrupting it mid-way (tap another fire) never spins the long way round.
+      // interrupting it mid-way (tapping another fire) never spins the long way
+      // round.
       emitter.yaw = reduceMotion
         ? targetYaw
         : emitter.yaw + dampOverMs(0, shortestAngleDelta(emitter.yaw, targetYaw), rotateMs, delta);

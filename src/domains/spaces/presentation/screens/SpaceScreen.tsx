@@ -9,8 +9,8 @@ import { useThemeColors } from '@/design-system/colors/colors';
 import { FloatingAddButton } from '@/design-system/components/FloatingAddButton/FloatingAddButton';
 import { Text } from '@/design-system/components/Text/Text';
 import { icons } from '@/design-system/icons/icons';
-import { layout, spacing } from '@/design-system/spacing/spacing';
 import { surfaceObjectMotion } from '@/design-system/motion/surface-objects';
+import { layout, spacing } from '@/design-system/spacing/spacing';
 import { useAuthStore } from '@/domains/auth/presentation/stores/authStore';
 import { useSettingsStore } from '@/domains/settings/presentation/stores/settingsStore';
 import type { SurfaceObjectKind } from '@/domains/surface-objects/domain/value-objects/SurfaceObjectKind';
@@ -37,6 +37,10 @@ const ADD_BUTTON_SIZE = 48;
 /**
  * The scene is the screen. Everything else floats above it, so the surface is
  * never pushed out of view by chrome.
+ *
+ * Top row, left to right: diagnostics, the people in this space, and the single
+ * way to add something. The bottom is left alone — a permanent action bar over a
+ * 3D surface was two buttons pretending to be furniture.
  */
 export function SpaceScreen(): ReactElement {
   const insets = useSafeAreaInsets();
@@ -172,10 +176,7 @@ export function SpaceScreen(): ReactElement {
       {!canCreate && activeSpace !== null ? (
         <View
           pointerEvents="none"
-          style={[
-            styles.notice,
-            { bottom: floatingChromeBottomInset(insets.bottom) + spacing.md },
-          ]}
+          style={[styles.notice, { bottom: floatingChromeBottomInset(insets.bottom) + spacing.md }]}
         >
           <Text variant="caption" align="center">
             У вас нет прав добавлять объекты в это пространство
