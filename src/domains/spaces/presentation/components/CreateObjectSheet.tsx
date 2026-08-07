@@ -1,4 +1,4 @@
-import { memo, type ReactElement, useState } from 'react';
+import { memo, type ReactElement } from 'react';
 import { Keyboard, StyleSheet, TextInput, View } from 'react-native';
 
 import { useThemeColors } from '@/design-system/colors/colors';
@@ -16,16 +16,14 @@ const NOTE_LIMIT = 240;
 
 function CreateObjectSheetComponent({ visible, kind, note, onChangeNote, onConfirm, onClose }: CreateObjectSheetProps): ReactElement | null {
   const theme = useThemeColors();
-  const [focused, setFocused] = useState(false);
   if (kind === null) return null;
   const presentation = kindPresentation(kind);
   return (
-    <Modal visible={visible} onClose={onClose} title={presentation.createLabel}>
+    <Modal visible={visible} onClose={onClose} title={presentation.createLabel} keyboardDismissible>
       <Text variant="caption">Опишите момент — он останется в истории вместе с объектом. Место на поверхности выберется само.</Text>
       <View style={[styles.field, { backgroundColor: theme.surfaceSunken }]}>
-        <TextInput value={note} onChangeText={onChangeNote} placeholder="Что произошло?" placeholderTextColor={theme.textTertiary} maxLength={NOTE_LIMIT} multiline returnKeyType="done" onFocus={() => setFocused(true)} onBlur={() => setFocused(false)} onSubmitEditing={() => Keyboard.dismiss()} style={[styles.input, { color: theme.textPrimary }]} />
+        <TextInput value={note} onChangeText={onChangeNote} placeholder="Что произошло?" placeholderTextColor={theme.textTertiary} maxLength={NOTE_LIMIT} multiline returnKeyType="done" blurOnSubmit onSubmitEditing={() => Keyboard.dismiss()} style={[styles.input, { color: theme.textPrimary }]} />
       </View>
-      {focused ? <Text variant="caption" align="center">Введите текст и нажмите «Скрыть клавиатуру», чтобы продолжить</Text> : null}
       <Button label={presentation.createLabel} onPress={onConfirm} />
     </Modal>
   );

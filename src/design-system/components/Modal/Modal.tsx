@@ -1,5 +1,5 @@
 import { memo, type ReactElement, type ReactNode } from 'react';
-import { KeyboardAvoidingView, Keyboard, Platform, Pressable, Modal as RNModal, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { Keyboard, KeyboardAvoidingView, Platform, Pressable, Modal as RNModal, StyleSheet, useWindowDimensions, View } from 'react-native';
 import Animated, { FadeIn, FadeOut, SlideInDown, SlideOutDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -17,13 +17,13 @@ export type ModalProps = {
   readonly children: ReactNode;
   readonly heightFraction?: number;
   readonly scrimOpacity?: number;
+  readonly keyboardDismissible?: boolean;
 };
 
-function ModalComponent({ visible, onClose, title, children, heightFraction, scrimOpacity = 0.24 }: ModalProps): ReactElement {
+function ModalComponent({ visible, onClose, title, children, heightFraction, scrimOpacity = 0.24, keyboardDismissible = false }: ModalProps): ReactElement {
   const insets = useSafeAreaInsets();
   const theme = useThemeColors();
   const { height } = useWindowDimensions();
-  const dismissKeyboard = (): void => Keyboard.dismiss();
 
   return (
     <RNModal animationType="none" transparent visible={visible} onRequestClose={onClose} statusBarTranslucent={Platform.OS === 'android'}>
@@ -37,9 +37,7 @@ function ModalComponent({ visible, onClose, title, children, heightFraction, scr
             <IconButton icon={icons.close} accessibilityLabel="Закрыть" onPress={onClose} />
           </View>
           {children}
-          <Pressable accessibilityRole="button" accessibilityLabel="Скрыть клавиатуру" onPress={dismissKeyboard} style={styles.keyboardButton}>
-            <Text variant="caption">Скрыть клавиатуру</Text>
-          </Pressable>
+          {keyboardDismissible ? <Pressable accessibilityRole="button" accessibilityLabel="Скрыть клавиатуру" onPress={() => Keyboard.dismiss()} style={styles.keyboardButton}><Text variant="caption">Скрыть клавиатуру</Text></Pressable> : null}
         </Animated.View>
       </KeyboardAvoidingView>
     </RNModal>
