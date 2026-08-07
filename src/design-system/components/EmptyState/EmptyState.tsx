@@ -2,10 +2,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { memo, type ReactElement } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { colors } from '../../colors/colors';
 import type { IconName } from '../../icons/icons';
 import { radius } from '../../radius/radius';
 import { spacing } from '../../spacing/spacing';
+import { useTheme } from '../../theme';
 import { Text } from '../Text/Text';
 
 export type EmptyStateProps = {
@@ -15,9 +15,11 @@ export type EmptyStateProps = {
 };
 
 function EmptyStateComponent({ icon, title, description }: EmptyStateProps): ReactElement {
+  const { colors } = useTheme();
+
   return (
     <View style={styles.root}>
-      <View style={styles.badge}>
+      <View style={[styles.badge, { backgroundColor: colors.surfaceSunken }]}>
         <Ionicons name={icon} size={26} color={colors.textTertiary} />
       </View>
       <Text variant="bodyStrong" align="center">
@@ -45,7 +47,6 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.surfaceSunken,
     marginBottom: spacing.xs,
   },
 });

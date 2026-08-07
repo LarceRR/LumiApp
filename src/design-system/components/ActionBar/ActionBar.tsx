@@ -3,10 +3,10 @@ import { memo, type ReactElement } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import Animated from 'react-native-reanimated';
 
-import { colors } from '../../colors/colors';
 import type { IconName } from '../../icons/icons';
 import { radius } from '../../radius/radius';
 import { layout, spacing } from '../../spacing/spacing';
+import { useTheme } from '../../theme';
 import { GlassSurface } from '../GlassSurface/GlassSurface';
 import { usePressFeedback } from '../Pressable/usePressFeedback';
 import { Text } from '../Text/Text';
@@ -26,6 +26,7 @@ export type ActionBarProps = {
 
 function Action({ action }: { readonly action: ActionBarAction }): ReactElement {
   const feedback = usePressFeedback({ scaleTo: 0.94 });
+  const { colors } = useTheme();
   const disabled = action.disabled ?? false;
 
   return (

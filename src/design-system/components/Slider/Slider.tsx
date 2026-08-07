@@ -1,8 +1,7 @@
-import { memo, type ReactElement } from "react";
-import RNSlider from "@react-native-community/slider";
+import RNSlider from '@react-native-community/slider';
+import { memo, type ReactElement } from 'react';
 
-import { colors } from "../../colors/colors";
-import { spacing } from "../../spacing/spacing";
+import { useTheme } from '../../theme';
 
 export type SliderProps = {
   readonly value: number;
@@ -21,6 +20,8 @@ function SliderComponent({
   onChange,
   accessibilityLabel,
 }: SliderProps): ReactElement {
+  const { colors } = useTheme();
+
   return (
     <RNSlider
       accessibilityLabel={accessibilityLabel}
@@ -30,7 +31,7 @@ function SliderComponent({
       value={value}
       onValueChange={onChange}
       minimumTrackTintColor={colors.accent}
-      maximumTrackTintColor={colors.surfaceSunken}
+      maximumTrackTintColor={colors.controlTrack}
       thumbTintColor={colors.surfaceRaised}
       style={{ height: 36 }}
     />
