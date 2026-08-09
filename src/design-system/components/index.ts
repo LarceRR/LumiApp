@@ -1,6 +1,7 @@
 export type { ActionBarAction, ActionBarProps } from './ActionBar/ActionBar';
 export { ActionBar } from './ActionBar/ActionBar';
 export { BlurCard } from './BlurCard/BlurCard';
+export type { BottomBarProps } from './BottomBar/BottomBar';
 export { BottomBar } from './BottomBar/BottomBar';
 export type { ButtonProps, ButtonVariant } from './Button/Button';
 export { Button } from './Button/Button';
@@ -26,3 +27,5 @@ export { Slider } from './Slider/Slider';
 export { Switch } from './Switch/Switch';
 export type { TextProps } from './Text/Text';
 export { Text } from './Text/Text';
+export type { UserAvatarProps } from './UserAvatar/UserAvatar';
+export { avatarInitial, avatarTint, UserAvatar } from './UserAvatar/UserAvatar';

@@ -21,8 +21,8 @@ export type AddObjectOption = {
 export type AddObjectMenuProps = {
   readonly options: readonly AddObjectOption[];
   readonly onSelect: (kind: SurfaceObjectKind) => void;
-  /** Distance from the top of the screen to the menu's first row. */
-  readonly top: number;
+  /** Distance from the bottom of the screen to the menu's last row. */
+  readonly bottom: number;
 };
 
 const MENU_WIDTH = 224;
@@ -31,16 +31,17 @@ const MENU_WIDTH = 224;
  * What used to be a permanent action bar across the bottom of the scene.
  *
  * Two choices do not deserve two persistent buttons over a 3D surface — they
- * deserve one affordance that admits it has options.
+ * deserve one affordance that admits it has options. It now hangs above the
+ * add control instead of below it, because the control moved to the thumb.
  */
-function AddObjectMenuComponent({ options, onSelect, top }: AddObjectMenuProps): ReactElement {
+function AddObjectMenuComponent({ options, onSelect, bottom }: AddObjectMenuProps): ReactElement {
   const theme = useThemeColors();
 
   return (
     <Animated.View
       entering={FadeIn.duration(140)}
       exiting={FadeOut.duration(120)}
-      style={[styles.wrap, { top }]}
+      style={[styles.wrap, { bottom }]}
     >
       <GlassSurface cornerRadius={radius.lg} style={styles.card}>
         <View style={styles.body}>
@@ -78,8 +79,9 @@ export const AddObjectMenu = memo(AddObjectMenuComponent);
 const styles = StyleSheet.create({
   wrap: {
     position: 'absolute',
-    right: layout.screenGutter,
-    width: MENU_WIDTH,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
   },
   card: {
     width: MENU_WIDTH,
