@@ -14,7 +14,6 @@ const DEG_TO_RAD = Math.PI / 180;
 const EPSILON = 1e-6;
 
 export type Viewport = { readonly width: number; readonly height: number };
-
 export type ScreenPoint = { readonly x: number; readonly y: number };
 
 export type ScreenRect = {
@@ -31,25 +30,20 @@ export type ScreenRect = {
 export type ProjectedPoint = {
   readonly x: number;
   readonly y: number;
-  /** Distance along the view axis. Zero or less means behind the camera. */
   readonly depth: number;
   readonly onScreen: boolean;
 };
 
-/** Analytic box used when no live particles are available. */
 export type ModelExtents = { readonly halfWidth: number; readonly height: number };
 
 export type ModelScreenBounds = {
   readonly id: SurfaceObjectId;
   readonly kind: string;
   readonly cell: Cell;
-  /** Where the model stands on the surface, world units. */
   readonly world: WorldPoint;
   readonly screen: ScreenRect;
   readonly center: ScreenPoint;
-  /** Where the model meets the surface, screen px. */
   readonly anchor: ScreenPoint;
-  /** `anchor.y - center.y`: how far the visual centre floats above the base. */
   readonly centerLiftPx: number;
   readonly viewport: Viewport;
   readonly camera: {
@@ -59,25 +53,14 @@ export type ModelScreenBounds = {
     readonly fov: number;
     readonly target: OrbitTarget;
   };
-  /** Distance from the camera along the view axis, world units. */
   readonly depth: number;
   readonly pixelsPerWorldUnit: number;
   readonly approxWorldWidth: number;
   readonly approxWorldHeight: number;
   readonly particleCount: number;
-  /** True when the box came from live particles rather than the analytic box. */
   readonly sampled: boolean;
   readonly onScreen: boolean;
   readonly capturedAt: number;
-};
-
-export type ModelBoundsInput = {
-  readonly id: SurfaceObjectId;
-  readonly kind: string;
-  readonly cell: Cell;
-  readonly viewport: Viewport;
-  readonly orbit: OrbitState;
-  readonly extents: ModelExtents;
 };
 
 type CameraBasis = {
@@ -97,10 +80,6 @@ type CameraBasis = {
   readonly aspect: number;
 };
 
-/**
- * Camera frame for the current orbit, resolved once and reused for every
- * particle. Mirrors `groundHitFromScreen` exactly, in the other direction.
- */
 function cameraBasis(orbit: OrbitState, viewport: Viewport): CameraBasis {
   const cam = orbitPosition(orbit);
   const tx = orbit.target.x - cam.x;
@@ -169,8 +148,7 @@ function projectWith(
     x: screenX,
     y: screenY,
     depth,
-    onScreen:
-      screenX >= 0 && screenX <= viewport.width && screenY >= 0 && screenY <= viewport.height,
+    onScreen: screenX >= 0 && screenX <= viewport.width && screenY >= 0 && screenY <= viewport.height,
   };
 }
 
@@ -178,7 +156,6 @@ function pixelsPerWorldUnit(basis: CameraBasis, viewport: Viewport, depth: numbe
   return viewport.height / (2 * Math.max(depth, EPSILON) * basis.tanHalf);
 }
 
-/** Project a single world point with the current orbit camera. */
 export function projectWorldToScreen(
   point: WorldPoint,
   viewport: Viewport,
@@ -188,34 +165,40 @@ export function projectWorldToScreen(
 }
 
 /**
- * Conservative box for a fire when its particles cannot be read.
- *
- * `speedMin * lifeTime` rather than `speedMax`: the tallest theoretical
- * particle is far above anything the eye reads as the flame.
+ * A stable envelope for the animated fire. The centre is the cell centre, not
+ * the current particle centroid: particle birth/death must not move the target
+ * by dozens of pixels every frame. The envelope still uses fire tuning values,
+ * but deliberately ignores the longest outlier lifetime so the box follows the
+ * visible body rather than a theoretical spark.
  */
 export function fireModelExtents(settings: FireSettings): ModelExtents {
   const spread = Math.max(settings.ember.spread, settings.flame.spread);
-  const widest = Math.max(settings.ember.scaleTo.max, settings.flame.scaleTo.max);
-  const tallest = Math.max(
+  const widestParticle = Math.max(settings.ember.scaleTo.max, settings.flame.scaleTo.max);
+  const visibleHeight = Math.max(
+    settings.ember.rangeY * 0.75,
+    settings.flame.rangeY * 1.1,
     settings.ember.speedMin * settings.ember.lifeTime,
     settings.flame.speedMin * settings.flame.lifeTime,
   );
 
   return {
-    halfWidth: (spread / 2 + widest) * settings.worldScale,
-    height: (tallest + widest) * settings.worldScale,
+    halfWidth: (spread / 2 + widestParticle * 0.5) * settings.worldScale,
+    height: visibleHeight * settings.worldScale,
   };
 }
 
-/**
- * Everything measurable about a model on screen, right now.
- *
- * The box comes from the live particle cloud when the renderer can hand it
- * over, so it is a genuine snapshot of what the user is looking at, not a
- * guess derived from settings. `sampled` says which of the two you got.
- */
+export type ModelBoundsInput = {
+  readonly id: SurfaceObjectId;
+  readonly kind: string;
+  readonly cell: Cell;
+  readonly viewport: Viewport;
+  readonly orbit: OrbitState;
+  readonly extents: ModelExtents;
+  readonly sampleLiveParticles?: boolean;
+};
+
 export function modelScreenBounds(input: ModelBoundsInput): ModelScreenBounds | null {
-  const { id, kind, cell, viewport, orbit, extents } = input;
+  const { id, kind, cell, viewport, orbit, extents, sampleLiveParticles = true } = input;
 
   if (viewport.width <= 0 || viewport.height <= 0) {
     return null;
@@ -223,7 +206,6 @@ export function modelScreenBounds(input: ModelBoundsInput): ModelScreenBounds | 
 
   const world = cellToWorld(cell);
   const basis = cameraBasis(orbit, viewport);
-
   let minX = Number.POSITIVE_INFINITY;
   let minY = Number.POSITIVE_INFINITY;
   let maxX = Number.NEGATIVE_INFINITY;
@@ -245,7 +227,7 @@ export function modelScreenBounds(input: ModelBoundsInput): ModelScreenBounds | 
     count += 1;
   };
 
-  const sampled = sampleModelParticles(id, expand);
+  const sampled = sampleLiveParticles && sampleModelParticles(id, expand);
 
   if (count === 0) {
     for (const dx of [-extents.halfWidth, extents.halfWidth]) {
@@ -264,8 +246,7 @@ export function modelScreenBounds(input: ModelBoundsInput): ModelScreenBounds | 
   const centerX = (minX + maxX) / 2;
   const centerY = (minY + maxY) / 2;
   const base = projectWith(basis, viewport, world.x, world.y, world.z);
-  const anchor: ScreenPoint =
-    base.depth > EPSILON ? { x: base.x, y: base.y } : { x: centerX, y: maxY };
+  const anchor: ScreenPoint = base.depth > EPSILON ? { x: base.x, y: base.y } : { x: centerX, y: maxY };
   const depth = base.depth > EPSILON ? base.depth : orbit.distance;
   const scale = pixelsPerWorldUnit(basis, viewport, depth);
 
@@ -306,10 +287,15 @@ export function modelScreenBounds(input: ModelBoundsInput): ModelScreenBounds | 
   };
 }
 
-/** Same measurement, reading the object, camera and fire tuning from stores. */
+/**
+ * Read a stable, camera-current envelope. This is what the debug overlay uses:
+ * it is recalculated at the current zoom, so it cannot remain at the old tap
+ * scale while the camera is moving.
+ */
 export function getModelScreenBounds(
   id: SurfaceObjectId,
   viewport: Viewport,
+  options: { readonly sampleLiveParticles?: boolean } = {},
 ): ModelScreenBounds | null {
   const object = useSurfaceObjectsStore.getState().byId[id];
 
@@ -324,5 +310,6 @@ export function getModelScreenBounds(
     viewport,
     orbit: useCameraStore.getState().orbit,
     extents: fireModelExtents(useFireSettingsStore.getState().settings),
+    sampleLiveParticles: options.sampleLiveParticles,
   });
 }
