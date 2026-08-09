@@ -1,85 +1,37 @@
 import { memo, type ReactElement } from 'react';
 import { StyleSheet, View } from 'react-native';
 
-import { palette, useColorSchemeToken, useThemeColors } from '@/design-system/colors/colors';
-import { Text } from '@/design-system/components/Text/Text';
+import { useColorSchemeToken } from '@/design-system/colors/colors';
+import { UserAvatar } from '@/design-system/components/UserAvatar/UserAvatar';
+import { useAuthStore } from '@/domains/auth/presentation/stores/authStore';
 import {
   selectSurfaceBackground,
   useSettingsStore,
 } from '@/domains/settings/presentation/stores/settingsStore';
 import { resolveSurfaceBackground } from '@/scene/surface/surfaceTheme';
 
-import type { Space, SpaceMember } from '../../domain/entities/Space';
+import type { Space } from '../../domain/entities/Space';
 
 export type MemberAvatarsProps = {
   readonly space: Space | null;
   readonly currentUserId: string | null;
 };
 
-const AVATAR_SIZE = 40;
+/** 4pt smaller than before, now that the row sits where the + used to be. */
+const AVATAR_SIZE = 36;
 /** Насколько левая аватарка заходит на правую. */
 const OVERLAP = 8;
 const RING_WIDTH = 2;
 
-const TINTS = [
-  palette.ember500,
-  palette.damson500,
-  palette.verdigris500,
-  palette.slate500,
-  palette.basalt600,
-] as const;
-
-function initial(name: string): string {
-  const trimmed = name.trim();
-
-  return trimmed.length === 0 ? '?' : trimmed.slice(0, 1).toUpperCase();
-}
-
-/** Цвет привязан к id, а не к порядку: один и тот же человек — один и тот же кружок. */
-function tintFor(seed: string): string {
-  let hash = 0;
-
-  for (let index = 0; index < seed.length; index += 1) {
-    hash = (hash * 31 + seed.charCodeAt(index)) % 2_147_483_647;
-  }
-
-  return TINTS[hash % TINTS.length] ?? TINTS[0];
-}
-
-type AvatarProps = {
-  readonly member: SpaceMember;
-  readonly ringColor: string | null;
-  readonly labelColor: string;
-};
-
-function Avatar({ member, ringColor, labelColor }: AvatarProps): ReactElement {
-  return (
-    <View
-      accessibilityLabel={member.displayName}
-      style={[
-        styles.avatar,
-        { backgroundColor: tintFor(member.userId) },
-        ringColor === null
-          ? null
-          : { borderWidth: RING_WIDTH, borderColor: ringColor, zIndex: 1, marginRight: -OVERLAP },
-      ]}
-    >
-      <Text variant="captionStrong" color={labelColor}>
-        {initial(member.displayName)}
-      </Text>
-    </View>
-  );
-}
-
 /**
- * Участники пространства по центру сверху: сначала ты, потом второй.
+ * Участники пространства в правом верхнем углу: сначала ты, потом второй.
  * Обводка левой аватарки повторяет фон поверхности, поэтому нахлёст читается
  * в любой теме.
  */
 function MemberAvatarsComponent({ space, currentUserId }: MemberAvatarsProps): ReactElement | null {
   const scheme = useColorSchemeToken();
-  const theme = useThemeColors();
   const background = resolveSurfaceBackground(useSettingsStore(selectSurfaceBackground), scheme);
+  const myPhoto = useAuthStore((state) => state.profile?.avatarUrl ?? null);
 
   if (space === null || space.members.length === 0) {
     return null;
@@ -95,13 +47,17 @@ function MemberAvatarsComponent({ space, currentUserId }: MemberAvatarsProps): R
 
   return (
     <View accessibilityLabel="Участники пространства" style={styles.row}>
-      <Avatar
-        member={me}
+      <UserAvatar
+        name={me.displayName}
+        seed={me.userId}
+        imageUrl={myPhoto}
+        size={AVATAR_SIZE}
         ringColor={partner === null ? null : background}
-        labelColor={theme.accentOn}
+        ringWidth={RING_WIDTH}
+        style={partner === null ? null : styles.overlapped}
       />
       {partner === null ? null : (
-        <Avatar member={partner} ringColor={null} labelColor={theme.accentOn} />
+        <UserAvatar name={partner.displayName} seed={partner.userId} size={AVATAR_SIZE} />
       )}
     </View>
   );
@@ -114,12 +70,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
-  avatar: {
-    width: AVATAR_SIZE,
-    height: AVATAR_SIZE,
-    borderRadius: AVATAR_SIZE / 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
+  overlapped: {
+    zIndex: 1,
+    marginRight: -OVERLAP,
   },
 });

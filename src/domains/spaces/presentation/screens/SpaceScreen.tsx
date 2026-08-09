@@ -21,26 +21,30 @@ import { selectIsSyncing, useRealtimeStore } from '@/infrastructure/realtime/rea
 import { useRealtimeSync } from '@/infrastructure/realtime/useRealtimeSync';
 import { SceneView } from '@/scene/SceneView';
 import { useCameraStore } from '@/scene/stores/cameraStore';
+import { useInspectStore } from '@/scene/stores/inspectStore';
 import { selectFps, useSceneStore } from '@/scene/stores/sceneStore';
 import { presentableKinds } from '@/scene/surface-objects/kindPresentation';
 
 import { hasPermission } from '../../domain/services/permissionService';
 import { AddObjectMenu, type AddObjectOption } from '../components/AddObjectMenu';
 import { CreateObjectSheet } from '../components/CreateObjectSheet';
+import { HitboxOverlay } from '../components/HitboxOverlay';
 import { MemberAvatars } from '../components/MemberAvatars';
 import { ObjectDetailsSheet } from '../components/ObjectDetailsSheet';
 import { useSpaces } from '../hooks/useSpaces';
 
-/** Height of the + control, and therefore the gap the menu hangs below. */
-const ADD_BUTTON_SIZE = 40;
+/** Thumb-sized, because it is now the only bottom control and it sits alone. */
+const ADD_BUTTON_SIZE = 64;
+/** Height reserved by the top row, so diagnostics and avatars stay aligned. */
+const TOP_ROW_HEIGHT = 40;
 
 /**
  * The scene is the screen. Everything else floats above it, so the surface is
  * never pushed out of view by chrome.
  *
- * Top row, left to right: diagnostics, the people in this space, and the single
- * way to add something. The bottom is left alone — a permanent action bar over a
- * 3D surface was two buttons pretending to be furniture.
+ * Top row: diagnostics on the left, the people in this space on the right.
+ * The single way to add something sits centred above the tab bar, where the
+ * thumb already is.
  */
 export function SpaceScreen(): ReactElement {
   const insets = useSafeAreaInsets();
@@ -61,6 +65,7 @@ export function SpaceScreen(): ReactElement {
   );
   const select = useSurfaceObjectsStore((state) => state.select);
   const endInspect = useCameraStore((state) => state.endInspect);
+  const clearHitbox = useInspectStore((state) => state.clearHitbox);
   const sheet = useUiStore((state) => state.sheet);
   const openSheet = useUiStore((state) => state.openSheet);
   const closeSheet = useUiStore((state) => state.closeSheet);
@@ -110,17 +115,21 @@ export function SpaceScreen(): ReactElement {
   // lifts off the sheet offset and the distance eases out.
   const dismissDetails = useCallback(() => {
     select(null);
+    clearHitbox();
     endInspect();
-  }, [endInspect, select]);
+  }, [clearHitbox, endInspect, select]);
 
   const isBusy = spacesLoading || (surfaceLoading && surface === null);
   const topBarTop = insets.top + spacing.sm;
+  const dockBottom = floatingChromeBottomInset(insets.bottom);
 
   return (
-    <View style={[styles.root, { backgroundColor: theme.surface }]}> 
+    <View style={[styles.root, { backgroundColor: theme.surface }]}>
       <View style={styles.scene}>
         <SceneView bounds={surface?.bounds ?? null} logger={logger} spaceKey={spaceId} />
       </View>
+
+      <HitboxOverlay />
 
       {menuOpen ? (
         <Pressable
@@ -130,8 +139,8 @@ export function SpaceScreen(): ReactElement {
         />
       ) : null}
 
-      <View pointerEvents="box-none" style={[styles.topBar, { paddingTop: topBarTop }]}> 
-        <View pointerEvents="none" style={styles.topSlot}> 
+      <View pointerEvents="box-none" style={[styles.topBar, { paddingTop: topBarTop }]}>
+        <View pointerEvents="none" style={styles.topSlot}>
           {showOverlay ? (
             <Text variant="caption" numberOfLines={1}>
               {`${fps} fps`}
@@ -144,26 +153,26 @@ export function SpaceScreen(): ReactElement {
           ) : null}
         </View>
 
-        <View pointerEvents="box-none" style={styles.topCenter}>
+        <View pointerEvents="box-none" style={styles.topRight}>
           <MemberAvatars space={activeSpace} currentUserId={currentUserId} />
         </View>
+      </View>
 
-        <View pointerEvents="box-none" style={[styles.topSlot, styles.topRight]}>
-          <FloatingAddButton
-            accessibilityLabel={menuOpen ? 'Закрыть меню добавления' : 'Добавить объект'}
-            expanded={menuOpen}
-            disabled={!canCreate || actions.isCreating}
-            size={ADD_BUTTON_SIZE}
-            onPress={() => setMenuOpen((open) => !open)}
-          />
-        </View>
+      <View pointerEvents="box-none" style={[styles.addDock, { bottom: dockBottom }]}>
+        <FloatingAddButton
+          accessibilityLabel={menuOpen ? 'Закрыть меню добавления' : 'Добавить объект'}
+          expanded={menuOpen}
+          disabled={!canCreate || actions.isCreating}
+          size={ADD_BUTTON_SIZE}
+          onPress={() => setMenuOpen((open) => !open)}
+        />
       </View>
 
       {menuOpen ? (
         <AddObjectMenu
           options={addOptions}
           onSelect={startCreate}
-          top={topBarTop + ADD_BUTTON_SIZE + spacing.sm}
+          bottom={dockBottom + ADD_BUTTON_SIZE + spacing.sm}
         />
       ) : null}
 
@@ -176,7 +185,7 @@ export function SpaceScreen(): ReactElement {
       {!canCreate && activeSpace !== null ? (
         <View
           pointerEvents="none"
-          style={[styles.notice, { bottom: floatingChromeBottomInset(insets.bottom) + spacing.md }]}
+          style={[styles.notice, { bottom: dockBottom + ADD_BUTTON_SIZE + spacing.md }]}
         >
           <Text variant="caption" align="center">
             У вас нет прав добавлять объекты в это пространство
@@ -228,17 +237,20 @@ const styles = StyleSheet.create({
   },
   topSlot: {
     flex: 1,
-    minHeight: ADD_BUTTON_SIZE,
+    minHeight: TOP_ROW_HEIGHT,
     justifyContent: 'center',
     gap: spacing.xxs,
   },
-  topCenter: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: ADD_BUTTON_SIZE,
-  },
   topRight: {
+    minHeight: TOP_ROW_HEIGHT,
     alignItems: 'flex-end',
+    justifyContent: 'center',
+  },
+  addDock: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    alignItems: 'center',
   },
   loader: {
     ...StyleSheet.absoluteFillObject,

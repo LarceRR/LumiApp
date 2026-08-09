@@ -26,11 +26,13 @@ export function SettingsScreen(): ReactElement {
   const themeMode = useSettingsStore((state) => state.themeMode);
   const reduceMotion = useSettingsStore((state) => state.reduceMotion);
   const showPerformanceOverlay = useSettingsStore((state) => state.showPerformanceOverlay);
+  const showHitbox = useSettingsStore((state) => state.showHitbox);
   const surfaceBackground = useSettingsStore((state) => state.surfaceBackground);
   const highlightEndpoints = useSettingsStore((state) => state.highlightEndpoints);
   const setThemeMode = useSettingsStore((state) => state.setThemeMode);
   const setReduceMotion = useSettingsStore((state) => state.setReduceMotion);
   const setShowPerformanceOverlay = useSettingsStore((state) => state.setShowPerformanceOverlay);
+  const setShowHitbox = useSettingsStore((state) => state.setShowHitbox);
   const setSurfaceBackground = useSettingsStore((state) => state.setSurfaceBackground);
   const setHighlightEndpoints = useSettingsStore((state) => state.setHighlightEndpoints);
   const quality = useSceneStore((state) => state.quality);
@@ -50,7 +52,7 @@ export function SettingsScreen(): ReactElement {
       <BlurCard title="Сцена"><ListRow title="Фон под тему" subtitle="Поверхность меняет палитру вместе с интерфейсом" trailing={<Switch value={backgroundFollowsTheme} onValueChange={(value) => setSurfaceBackground(value ? null : resolvedBackground)} accessibilityLabel="Фон под тему" />} />{backgroundFollowsTheme ? null : <><Divider /><Text variant="body">Фон поверхности</Text><Text variant="caption">Доступны только цвета текущей темы</Text><ColorSwatches accessibilityLabel="Фон поверхности" value={resolvedBackground} options={backgroundOptions} onChange={setSurfaceBackground} /></>}<Divider /><ListRow title="Подсветка первого и последнего" subtitle="Зелёная клетка под самым старым объектом, оранжевая — под новым" trailing={<Switch value={highlightEndpoints} onValueChange={setHighlightEndpoints} accessibilityLabel="Подсветка первого и последнего" />} /></BlurCard>
       <BlurCard title="Движение"><ListRow title="Меньше движения" subtitle="Объекты появляются и поворачиваются без длинной анимации" trailing={<Switch value={reduceMotion} onValueChange={setReduceMotion} accessibilityLabel="Меньше движения" />} /></BlurCard>
       {objects.length === 0 ? null : <BlurCard title="Объекты">{objects.map((definition, index) => <Fragment key={definition.kind}>{index === 0 ? null : <Divider />}<ListRow title={definition.settingsTitle} subtitle={definition.settingsSubtitle} icon={kindPresentation(definition.kind).icon} iconTint={kindPresentation(definition.kind).tint} onPress={() => setTunedKind(definition.kind)} /></Fragment>)}</BlurCard>}
-      <BlurCard title="Отладка"><ListRow title="Показывать FPS" subtitle="Частота кадров поверх сцены" trailing={<Switch value={showPerformanceOverlay} onValueChange={setShowPerformanceOverlay} accessibilityLabel="Показывать FPS" />} /><Divider /><Text variant="caption">Качество: {quality.tier}, до {quality.maxInstancesPerKind} объектов в кадре. Версия: {env.mode}</Text></BlurCard>
+      <BlurCard title="Отладка"><ListRow title="Показывать FPS" subtitle="Частота кадров поверх сцены" trailing={<Switch value={showPerformanceOverlay} onValueChange={setShowPerformanceOverlay} accessibilityLabel="Показывать FPS" />} /><Divider /><ListRow title="Отображение 2D хитбокса" subtitle="Рамка и центр выбранного объекта в момент нажатия" trailing={<Switch value={showHitbox} onValueChange={setShowHitbox} accessibilityLabel="Отображение 2D хитбокса" />} /><Divider /><Text variant="caption">Качество: {quality.tier}, до {quality.maxInstancesPerKind} объектов в кадре. Версия: {env.mode}</Text></BlurCard>
       <ObjectSettingsSheet kind={tunedKind} visible={tunedKind !== null} onClose={() => setTunedKind(null)} />
     </Screen>
   );
