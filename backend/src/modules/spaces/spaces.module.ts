@@ -3,6 +3,7 @@ import { Module } from '@nestjs/common';
 import { BillingModule } from '@/modules/billing/billing.module';
 import { SurfacesModule } from '@/modules/surfaces/surfaces.module';
 import { UsersModule } from '@/modules/users/users.module';
+import { IdempotencyService } from '@/shared/idempotency/idempotency.service';
 
 import { CreateSpaceHandler } from './application/commands/createSpace.handler';
 import { InviteMemberHandler } from './application/commands/inviteMember.handler';
@@ -18,14 +19,13 @@ import { SpacesController } from './presentation/controllers/spaces.controller';
   controllers: [SpacesController],
   providers: [
     { provide: SPACE_REPOSITORY, useClass: DrizzleSpaceRepository },
+    IdempotencyService,
     SpaceAccessService,
     ListSpacesHandler,
     CreateSpaceHandler,
     InviteMemberHandler,
     RespondToInvitationHandler,
   ],
-  // SpaceAccessService is the shared entry point for permission checks, so guards
-  // and other modules can depend on it without reaching for the repository.
   exports: [SPACE_REPOSITORY, SpaceAccessService, CreateSpaceHandler],
 })
 export class SpacesModule {}
