@@ -7,6 +7,7 @@ import {
   type SurfaceRepository,
 } from '@/modules/surfaces/domain/repositories/SurfaceRepository';
 import type { UserId } from '@/modules/users/domain/value-objects/UserId';
+import { IdempotencyService } from '@/shared/idempotency/idempotency.service';
 import { domainEventNames, type SpaceCreatedEvent } from '@/shared/events/domainEvents';
 
 import type { Space } from '../../domain/entities/Space';
@@ -18,12 +19,10 @@ export type CreateSpaceCommand = {
   readonly ownerId: UserId;
   readonly title: string;
   readonly type: SpaceType;
+  readonly idempotencyKey?: string | null;
 };
 
-/**
- * A space is never useful without its surface, so both are created here — this is
- * the only place that knows they come as a pair.
- */
+/** A space is never useful without its surface, so both are created here. */
 @Injectable()
 export class CreateSpaceHandler {
   constructor(
@@ -32,9 +31,19 @@ export class CreateSpaceHandler {
     private readonly entitlements: EntitlementsService,
     private readonly access: SpaceAccessService,
     private readonly events: EventEmitter2,
+    private readonly idempotency: IdempotencyService,
   ) {}
 
   async execute(command: CreateSpaceCommand): Promise<Space> {
+    return this.idempotency.execute({
+      key: command.idempotencyKey,
+      scope: `space:create:${command.ownerId}`,
+      payload: { title: command.title.trim(), type: command.type },
+      operation: () => this.create(command),
+    });
+  }
+
+  private async create(command: CreateSpaceCommand): Promise<Space> {
     if (command.type === 'Shared') {
       await this.entitlements.assertGranted(command.ownerId, 'canCreateMultipleSpaces');
     }
