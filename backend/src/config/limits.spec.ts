@@ -4,6 +4,9 @@ import { describe, expect, it } from 'vitest';
 
 import { LIMIT_DEFINITIONS, type AppLimits, loadLimits } from './limits';
 
+/** Ключи читаются только из первой колонки матрицы, а не из текста документа. */
+const MATRIX_ROW = /^\|\s*`(LIMIT_[A-Z0-9_]+)`\s*\|/gm;
+
 function readPath(limits: AppLimits, path: string): unknown {
   return path
     .split('.')
@@ -78,9 +81,10 @@ describe('реестр лимитов (#38)', () => {
     expect(existsSync(documentPath)).toBe(true);
 
     const document = readFileSync(documentPath, 'utf8');
-    const documented = new Set([...document.matchAll(/`(LIMIT_[A-Z0-9_]+)`/g)].map((match) => match[1] ?? ''));
+    const documented = new Set([...document.matchAll(MATRIX_ROW)].map((match) => match[1] ?? ''));
     const defined = new Set(LIMIT_DEFINITIONS.map((definition) => definition.key));
 
+    expect(documented.size).toBe(LIMIT_DEFINITIONS.length);
     expect([...defined].filter((key) => !documented.has(key))).toEqual([]);
     expect([...documented].filter((key) => !defined.has(key))).toEqual([]);
   });
