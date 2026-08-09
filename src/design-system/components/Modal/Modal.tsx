@@ -17,19 +17,7 @@ function ModalComponent({ visible, onClose, title, children, overlay, heightFrac
   const theme = useThemeColors();
   const { height } = useWindowDimensions();
   const scrim = scrimOpacity > 0 ? <Animated.View entering={FadeIn} exiting={FadeOut} style={[styles.scrim, { backgroundColor: theme.scrim, opacity: scrimOpacity / 0.24 }]}><Pressable accessibilityLabel="Закрыть" style={styles.scrimTouch} onPress={onClose} /></Animated.View> : null;
-  return (
-    <RNModal animationType="none" transparent visible={visible} onRequestClose={onClose} statusBarTranslucent={Platform.OS === 'android'}>
-      {scrim}
-      {overlay}
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={insets.top} style={styles.sheetWrap}>
-        <Animated.View entering={SlideInDown} exiting={SlideOutDown} onLayout={(event) => { onSheetLayout?.(event.nativeEvent.layout.height); }} style={[styles.sheet, { backgroundColor: theme.surfaceRaised, paddingBottom: insets.bottom + spacing.lg }, heightFraction === undefined ? null : { minHeight: height * heightFraction }]}>
-          <View style={styles.header}><Text variant="sectionTitle" style={styles.title} numberOfLines={1}>{title}</Text><IconButton icon={icons.close} accessibilityLabel="Закрыть" onPress={onClose} /></View>
-          {children}
-          {keyboardDismissible ? <Pressable accessibilityRole="button" accessibilityLabel="Скрыть клавиатуру" onPress={() => Keyboard.dismiss()} style={styles.keyboardButton}><Text variant="caption">Скрыть клавиатуру</Text></Pressable> : null}
-        </Animated.View>
-      </KeyboardAvoidingView>
-    </RNModal>
-  );
+  return <RNModal animationType="none" transparent visible={visible} onRequestClose={onClose} statusBarTranslucent={Platform.OS === 'android'}>{scrim}<KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={insets.top} style={styles.sheetWrap}><Animated.View entering={SlideInDown} exiting={SlideOutDown} onLayout={(event) => { onSheetLayout?.(event.nativeEvent.layout.height); }} style={[styles.sheet, { backgroundColor: theme.surfaceRaised, paddingBottom: insets.bottom + spacing.lg }, heightFraction === undefined ? null : { minHeight: height * heightFraction }]}><View style={styles.header}><Text variant="sectionTitle" style={styles.title} numberOfLines={1}>{title}</Text><IconButton icon={icons.close} accessibilityLabel="Закрыть" onPress={onClose} /></View>{children}{keyboardDismissible ? <Pressable accessibilityRole="button" accessibilityLabel="Скрыть клавиатуру" onPress={() => Keyboard.dismiss()} style={styles.keyboardButton}><Text variant="caption">Скрыть клавиатуру</Text></Pressable> : null}</Animated.View></KeyboardAvoidingView>{overlay}</RNModal>;
 }
 
 export const Modal = memo(ModalComponent);
