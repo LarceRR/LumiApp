@@ -3,11 +3,11 @@ import { create } from 'zustand';
 import { type ThemeMode, useThemeStore } from '@/design-system/colors/colors';
 
 export type SettingsState = {
-  readonly themeMode: ThemeMode;
-  readonly reduceMotion: boolean;
-  readonly showPerformanceOverlay: boolean;
-  readonly surfaceBackground: string | null;
-  readonly highlightEndpoints: boolean;
+  themeMode: ThemeMode;
+  reduceMotion: boolean;
+  showPerformanceOverlay: boolean;
+  surfaceBackground: string | null;
+  highlightEndpoints: boolean;
   setThemeMode: (value: ThemeMode) => void;
   setReduceMotion: (value: boolean) => void;
   setShowPerformanceOverlay: (value: boolean) => void;
@@ -24,9 +24,7 @@ export type PersistedSettings = {
   readonly highlightEndpoints: boolean;
 };
 
-function publishThemeMode(mode: ThemeMode): void {
-  useThemeStore.getState().setMode(mode);
-}
+function publishThemeMode(mode: ThemeMode): void { useThemeStore.getState().setMode(mode); }
 
 export const useSettingsStore = create<SettingsState>()((set) => ({
   themeMode: 'system',
@@ -34,20 +32,14 @@ export const useSettingsStore = create<SettingsState>()((set) => ({
   showPerformanceOverlay: false,
   surfaceBackground: null,
   highlightEndpoints: false,
-  setThemeMode: (themeMode) => {
-    publishThemeMode(themeMode);
-    set({ themeMode });
-  },
+  setThemeMode: (themeMode) => { publishThemeMode(themeMode); set({ themeMode }); },
   setReduceMotion: (reduceMotion) => set({ reduceMotion }),
   setShowPerformanceOverlay: (showPerformanceOverlay) => set({ showPerformanceOverlay }),
   setSurfaceBackground: (surfaceBackground) => set({ surfaceBackground }),
   setHighlightEndpoints: (highlightEndpoints) => set({ highlightEndpoints }),
   hydrate: (values) => {
-    const next: Partial<PersistedSettings> = {};
-    if (values.themeMode !== undefined) {
-      next.themeMode = values.themeMode;
-      publishThemeMode(values.themeMode);
-    }
+    const next: Partial<SettingsState> = {};
+    if (values.themeMode !== undefined) { next.themeMode = values.themeMode; publishThemeMode(values.themeMode); }
     if (values.reduceMotion !== undefined) next.reduceMotion = values.reduceMotion;
     if (values.showPerformanceOverlay !== undefined) next.showPerformanceOverlay = values.showPerformanceOverlay;
     if (values.surfaceBackground !== undefined) next.surfaceBackground = values.surfaceBackground;
@@ -57,13 +49,7 @@ export const useSettingsStore = create<SettingsState>()((set) => ({
 }));
 
 export function persistedSettings(state: SettingsState): PersistedSettings {
-  return {
-    themeMode: state.themeMode,
-    reduceMotion: state.reduceMotion,
-    showPerformanceOverlay: state.showPerformanceOverlay,
-    surfaceBackground: state.surfaceBackground,
-    highlightEndpoints: state.highlightEndpoints,
-  };
+  return { themeMode: state.themeMode, reduceMotion: state.reduceMotion, showPerformanceOverlay: state.showPerformanceOverlay, surfaceBackground: state.surfaceBackground, highlightEndpoints: state.highlightEndpoints };
 }
 
 export const selectThemeMode = (state: SettingsState): ThemeMode => state.themeMode;
