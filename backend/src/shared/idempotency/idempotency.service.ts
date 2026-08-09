@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { Inject, Injectable } from '@nestjs/common';
-import { and, eq, gt } from 'drizzle-orm';
+import { and } from 'drizzle-orm';
 
 import { DATABASE, type Database } from '@/database/drizzle/drizzle.module';
 import { idempotencyRecords } from '@/database/schema';
@@ -10,49 +10,24 @@ export type IdempotencyKey = string | null | undefined;
 
 type StoredValue = Record<string, unknown> | readonly unknown[] | string | number | boolean | null;
 
-/**
- * Durable replay wrapper for retryable mutations. The operation itself remains
- * owned by the use case; this service owns key validation, hashing and replay.
- * Repository transaction integration is the next hardening step for concurrent
- * first requests, while the unique database key prevents duplicate records.
- */
+/** Durable replay wrapper for retryable mutations. */
 @Injectable()
 export class IdempotencyService {
   constructor(@Inject(DATABASE) private readonly db: Database) {}
 
-  async execute<T>(params: {
-    key: IdempotencyKey;
-    scope: string;
-    payload: unknown;
-    operation: () => Promise<T>;
-  }): Promise<T> {
-    if (params.key === undefined || params.key === null || params.key.trim() === '') {
-      return params.operation();
-    }
-
+  async execute<T>(params: { key: IdempotencyKey; scope: string; payload: unknown; operation: () => Promise<T> }): Promise<T> {
+    if (params.key === undefined || params.key === null || params.key.trim() === '') return params.operation();
     const key = params.key.trim();
-    if (key.length > 200) {
-      throw new ConflictError('Слишком длинный idempotency key');
-    }
-
+    if (key.length > 200) throw new ConflictError('Слишком длинный idempotency key');
     const requestHash = hash({ scope: params.scope, payload: params.payload });
     const now = new Date();
     const existing = await this.db.query.idempotencyRecords.findFirst({
-      where: (table, operators) =>
-        and(
-          operators.eq(table.scope, params.scope),
-          operators.eq(table.key, key),
-          operators.gt(table.expiresAt, now),
-        ),
+      where: (table, operators) => and(operators.eq(table.scope, params.scope), operators.eq(table.key, key), operators.gt(table.expiresAt, now)),
     });
-
     if (existing !== undefined) {
-      if (existing.requestHash !== requestHash) {
-        throw new ConflictError('Idempotency key уже использован для другого запроса');
-      }
+      if (existing.requestHash !== requestHash) throw new ConflictError('Idempotency key уже использован для другого запроса');
       return revive(existing.response as StoredValue) as T;
     }
-
     const result = await params.operation();
     await this.db.insert(idempotencyRecords).values({
       scope: params.scope,
@@ -73,12 +48,7 @@ function hash(value: unknown): string {
 function revive(value: StoredValue): unknown {
   if (Array.isArray(value)) return value.map(revive);
   if (value !== null && typeof value === 'object') {
-    return Object.fromEntries(
-      Object.entries(value).map(([key, entry]) => [
-        key,
-        typeof entry === 'string' && /(At|Date)$/.test(key) ? new Date(entry) : revive(entry as StoredValue),
-      ]),
-    );
+    return Object.fromEntries(Object.entries(value).map(([key, entry]) => [key, typeof entry === 'string' && /(At|Date)$/.test(key) ? new Date(entry) : revive(entry as StoredValue)]));
   }
   return value;
 }
