@@ -1,5 +1,6 @@
 import { Global, Module } from '@nestjs/common';
 
+import { DrizzleModule } from '@/database/drizzle/drizzle.module';
 import { IdempotencyService } from './idempotency/idempotency.service';
 import { CLOCK, systemClock } from './utils/clock';
 import { ID_GENERATOR, uuidGenerator } from './utils/id';
@@ -8,6 +9,7 @@ import { cryptoRandomSource, RANDOM_SOURCE } from './utils/random';
 /** Process-wide infrastructure seams available to every feature module. */
 @Global()
 @Module({
+  imports: [DrizzleModule],
   providers: [
     { provide: CLOCK, useValue: systemClock },
     { provide: ID_GENERATOR, useValue: uuidGenerator },
