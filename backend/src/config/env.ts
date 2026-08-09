@@ -98,8 +98,9 @@ export const APP_CONFIG = Symbol('APP_CONFIG');
 
 export function loadConfig(source: NodeJS.ProcessEnv = process.env): AppConfig {
   const parsed = envSchema.safeParse(source);
-  console.log(source)
 
+  // Ошибка конфигурации показывает только имена переменных и причину: значения
+  // окружения (секреты, строки подключения) в лог не попадают никогда.
   if (!parsed.success) {
     const details = parsed.error.issues
       .map((issue) => `${issue.path.join('.')}: ${issue.message}`)
