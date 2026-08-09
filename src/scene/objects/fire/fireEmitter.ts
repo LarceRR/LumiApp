@@ -1,5 +1,5 @@
 import { FireParticleLayer } from './fireParticleLayer';
-import { fireParticleBudget, type FireSettings } from './fireSettings';
+import { fireParticleBudget, type FireSettings, type FireWindSettings } from './fireSettings';
 
 /**
  * One fire: a flame layer over an ember layer, plus the opacity it is currently
@@ -35,8 +35,16 @@ export class VoxelFireEmitter {
     this.flame.configure(settings.flame, fireParticleBudget(settings.flame, settings, isFocused));
   }
 
-  update(deltaSeconds: number, settings: FireSettings): void {
-    this.ember.update(deltaSeconds, settings.wind);
-    this.flame.update(deltaSeconds, settings.wind);
+  /**
+   * @param wind overrides the authored wind for this frame. The field passes the
+   *   pan-driven gust; the preview leaves it out and keeps the authored value.
+   */
+  update(
+    deltaSeconds: number,
+    settings: FireSettings,
+    wind: FireWindSettings = settings.wind,
+  ): void {
+    this.ember.update(deltaSeconds, wind);
+    this.flame.update(deltaSeconds, wind);
   }
 }

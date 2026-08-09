@@ -26,6 +26,10 @@ function layerFields(prefix: 'ember' | 'flame'): SettingsSchema[number]['fields'
 /**
  * Ordered top to bottom exactly as the settings sheet renders it.
  * Adding a knob here is the only step needed to expose it in the app.
+ *
+ * Wind is deliberately absent. `FireWindSettings` and every line that consumes
+ * it are still live — the wind is now driven by camera panning (see `panWind`),
+ * so hand-tuned sliders would only fight the gesture that produces it.
  */
 export const fireSettingsSchema: SettingsSchema = [
   settingsGroup('general', 'Общее', [
@@ -36,12 +40,6 @@ export const fireSettingsSchema: SettingsSchema = [
   ]),
   settingsGroup('flame', 'Пламя', layerFields('flame')),
   settingsGroup('ember', 'Угли', layerFields('ember')),
-  settingsGroup('wind', 'Ветер', [
-    numberField('wind.strength', 'Сила', 0, 3, 0.01),
-    numberField('wind.direction', 'Направление', 0, 360, 1),
-    numberField('wind.minHeight', 'Нижняя граница', -1, 3, 0.1),
-    numberField('wind.maxHeight', 'Верхняя граница', 0, 5, 0.1),
-  ]),
   // Ручки настоящего постпроцесса: порог решает, что вообще светится, радиус —
   // насколько широко, экспозиция — насколько ярким остаётся кадр целиком.
   settingsGroup('bloom', 'Свечение', [

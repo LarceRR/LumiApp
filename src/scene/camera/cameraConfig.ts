@@ -21,17 +21,51 @@ export function defaultVisibleRows(screenHeight: number): number {
   return Math.max(1, screenHeight / SURFACE_CELL_SIZE_PX);
 }
 
+/** World height the camera sees at `distance`. */
+export function visibleWorldHeight(distance: number): number {
+  const fovRad = cameraConfig.fov * DEG_TO_RAD;
+  return 2 * distance * Math.tan(fovRad / 2);
+}
+
 /**
- * Drop the camera target just enough to put the object in the visual middle of
- * the open band between the top edge and the sheet top. The old `fraction / 2`
- * value aimed at the midpoint of the entire upper band, which left the fire
- * visibly too high on phones with a tall details sheet.
+ * @deprecated Superseded by {@link inspectTargetY}, which frames the model's
+ * own centre instead of its base. Kept so existing callers and tests keep
+ * compiling while they migrate.
  */
 export function inspectTargetYOffset(distance: number, occupiedFraction: number): number {
-  const fovRad = cameraConfig.fov * DEG_TO_RAD;
-  const visibleHeight = 2 * distance * Math.tan(fovRad / 2);
   const openBandPosition = occupiedFraction * 0.22;
-  return visibleHeight * openBandPosition;
+  return visibleWorldHeight(distance) * openBandPosition;
+}
+
+/**
+ * Centre of the free band between the top of the display and the top of the
+ * sheet, as a fraction of screen height measured from the top.
+ */
+export function freeBandCenterFraction(sheetScreenFraction: number): number {
+  const occupied = Math.min(Math.max(sheetScreenFraction, 0), 1);
+  return (1 - occupied) / 2;
+}
+
+/**
+ * Look-at height that lands `modelCenterY` in the middle of that free band.
+ *
+ * Two things the old fraction-of-a-fraction guess got wrong. First, the target
+ * of the framing is the centre of the model's hitbox, not the point where it
+ * touches the surface — a tall flame framed by its base always sits too low.
+ * Second, dropping the look-at point translates the whole rig vertically in
+ * world space, but the screen only sees the component of that translation along
+ * the camera's up axis, so the offset has to be divided by cos(elevation).
+ */
+export function inspectTargetY(
+  modelCenterY: number,
+  distance: number,
+  elevation: number,
+  sheetScreenFraction: number,
+): number {
+  const liftFraction = 0.5 - freeBandCenterFraction(sheetScreenFraction);
+  const cosElevation = Math.max(Math.cos(elevation), 0.15);
+
+  return modelCenterY - (visibleWorldHeight(distance) * liftFraction) / cosElevation;
 }
 
 export function orbitPosition(orbit: {
@@ -59,7 +93,5 @@ export function panDeltaFromScreen(changeX: number, changeY: number, azimuth: nu
 }
 
 export function worldUnitsPerPixel(distance: number, screenHeight: number): number {
-  const fovRad = cameraConfig.fov * DEG_TO_RAD;
-  const visibleHeight = 2 * distance * Math.tan(fovRad / 2);
-  return visibleHeight / Math.max(screenHeight, 1);
+  return visibleWorldHeight(distance) / Math.max(screenHeight, 1);
 }
