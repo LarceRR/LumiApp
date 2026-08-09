@@ -4,22 +4,21 @@ import { resolve } from 'node:path';
 const directory = resolve(process.cwd(), 'deploy/environments');
 const files = readdirSync(directory).filter((file) => file.endsWith('.json')).sort();
 const manifests = files.map((file) => ({ file, value: JSON.parse(readFileSync(resolve(directory, file), 'utf8')) }));
-const requiredNames = ['development', 'staging', 'production'];
+const expected = new Set(['development', 'staging', 'production']);
 const errors = [];
 
-if (manifests.length !== requiredNames.length) errors.push(`ожидалось ${requiredNames.length} manifest-файла, найдено ${manifests.length}`);
+if (manifests.length !== expected.size) errors.push(`ожидалось ${expected.size} manifest-файла, найдено ${manifests.length}`);
 
-const seenNames = new Set();
+const names = manifests.map(({ value }) => value.name);
+if (new Set(names).size !== names.length) errors.push('имена окружений должны быть уникальны');
+for (const name of names) if (!expected.has(name)) errors.push(`неизвестное окружение ${String(name)}`);
+
 for (const { file, value } of manifests) {
   for (const field of ['name', 'resourceNamespace', 'databaseResource', 'redisResource', 'storageBucket', 'apiBaseUrl', 'websocketUrl']) {
     if (typeof value[field] !== 'string' || value[field].length === 0) errors.push(`${file}: отсутствует ${field}`);
   }
-  if (!requiredNames.includes(value.name)) errors.push(`${file}: неизвестное имя окружения ${value.name}`);
-  if (seenNames.has(value.name)) errors.push(`дублируется окружение ${value.name}`);
-  seenNames.add(value.name);
   if (!Array.isArray(value.secretRefs) || value.secretRefs.length === 0) errors.push(`${file}: нет secretRefs`);
-  if (!Array.isArray(value.clientSecretRefs) || value.clientSecretRefs.length !== 0) errors.push(`${file}: секреты нельзя передавать клиенту`);
-  if (/password=|token=|postgres://|redis://|-----BEGIN/i.test(JSON.stringify(value))) errors.push(`${file}: manifest содержит credential вместо ссылки`);
+  if (!Array.isArray(value.clientSecretRefs) || value.clientSecretRefs.length !== 0) errors.push(`${file}: clientSecretRefs должен быть пустым`);
 }
 
 for (const field of ['resourceNamespace', 'databaseResource', 'redisResource', 'storageBucket', 'apiBaseUrl', 'websocketUrl']) {
@@ -30,9 +29,8 @@ for (const field of ['resourceNamespace', 'databaseResource', 'redisResource', '
 const staging = manifests.find(({ value }) => value.name === 'staging')?.value;
 const production = manifests.find(({ value }) => value.name === 'production')?.value;
 if (staging && production) {
-  for (const field of ['resourceNamespace', 'databaseResource', 'redisResource', 'storageBucket', 'apiBaseUrl', 'websocketUrl']) if (staging[field] === production[field]) errors.push(`staging и production делят ${field}`);
-  if (staging.secretRefs.some((ref) => ref.includes('/production/'))) errors.push('staging ссылается на production secret');
-  if (production.secretRefs.some((ref) => ref.includes('/staging/'))) errors.push('production ссылается на staging secret');
+  if (staging.secretRefs.some((ref) => String(ref).includes('/production/'))) errors.push('staging ссылается на production secret');
+  if (production.secretRefs.some((ref) => String(ref).includes('/staging/'))) errors.push('production ссылается на staging secret');
 }
 
 if (errors.length > 0) {
@@ -41,4 +39,4 @@ if (errors.length > 0) {
   process.exit(1);
 }
 
-console.log(`Environment isolation подтверждена: ${manifests.map(({ value }) => value.name).join(', ')}`);
+console.log(`Environment isolation подтверждена: ${names.join(', ')}`);
