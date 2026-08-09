@@ -18,7 +18,7 @@ jobs:
       - name: Environment isolation
         run: npm run verify:environments
       - name: Версия сборки и API
-        run: echo "environment=ci build_sha=${GITHUB_SHA} api_version=v1" > .expo/environment-smoke.txt
+        run: mkdir -p .expo && echo "environment=ci build_sha=${GITHUB_SHA} api_version=v1" > .expo/environment-smoke.txt
       - name: Типы
         run: npm run typecheck
       - name: Линтер и формат
