@@ -16,6 +16,7 @@
     "test:watch": "vitest",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/database/migrations/run.ts",
+    "db:verify": "tsx src/database/migrations/verify.ts",
     "db:seed": "tsx src/database/seed/seed.ts",
     "verify": "npm run typecheck && npm run lint && npm run test"
   },
