@@ -3,12 +3,17 @@ import { StyleSheet, useWindowDimensions, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 
 import { cameraMotion } from '@/design-system/motion/camera';
+import { useSettingsStore } from '@/domains/settings/presentation/stores/settingsStore';
 import { knownKinds } from '@/domains/surface-objects/domain/value-objects/SurfaceObjectKind';
 import { useSurfaceObjectsStore } from '@/domains/surface-objects/presentation/stores/surfaceObjectsStore';
 import { panDeltaFromScreen, worldUnitsPerPixel } from '@/scene/camera/cameraConfig';
+import { getModelScreenBounds } from '@/scene/objects/core/modelScreenBounds';
 import { objectYawRadians } from '@/scene/objects/core/objectYaw';
 import { groundHitFromScreen, pickNearestObject } from '@/scene/objects/core/pickObjectAtScreen';
+import { fireModelBounds } from '@/scene/objects/fire/fireModelBounds';
+import { fireSettings } from '@/scene/objects/fire/fireSettingsStore';
 import { useCameraStore } from '@/scene/stores/cameraStore';
+import { useHitboxStore } from '@/scene/stores/hitboxStore';
 import { useSceneStore } from '@/scene/stores/sceneStore';
 import { cellToWorld } from '@/scene/surface/cellToWorld';
 
@@ -277,10 +282,32 @@ function SurfaceOrbitControlsComponent({ children }: SurfaceOrbitControlsProps):
         return;
       }
 
-      select(picked.id);
       const world = cellToWorld(picked.cell);
-      camera.startFocusTour({ x: world.x, y: 0, z: world.z }, objectYawRadians(picked.id), {
+      const origin = { x: world.x, y: 0, z: world.z };
+      const bounds = fireModelBounds(fireSettings());
+      const hitboxes = useHitboxStore.getState();
+
+      // Snapshot before the camera starts moving: the box has to describe what the
+      // picker saw at the moment of the tap, not where the object ends up.
+      if (useSettingsStore.getState().showHitbox) {
+        hitboxes.capture(
+          getModelScreenBounds({
+            id: picked.id,
+            cell: picked.cell,
+            origin,
+            local: bounds,
+            orbit: camera.orbit,
+            viewport: { width: screenWidth, height: screenHeight },
+          }),
+        );
+      } else {
+        hitboxes.clear();
+      }
+
+      select(picked.id);
+      camera.startFocusTour(origin, objectYawRadians(picked.id), {
         mode: 'inspect',
+        modelCenterY: bounds.height / 2,
       });
     },
     [screenHeight, screenWidth],

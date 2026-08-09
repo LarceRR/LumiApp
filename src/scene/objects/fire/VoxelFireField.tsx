@@ -20,6 +20,7 @@ import { selectVisibleObjects } from '../core/selectVisibleObjects';
 import { VoxelFireEmitter } from './fireEmitter';
 import { FIRE_LIGHT, fireLightIntensity } from './fireLight';
 import { useFireSettingsStore } from './fireSettingsStore';
+import { dampPanGust, type PanGust, panGustVector, panWindSettings, ZERO_GUST } from './panWind';
 import { FIRE_LAYER_CAPACITY, VoxelFireLayers } from './voxelFireLayers';
 
 /** Longest frame the simulation will integrate, so a stall never blows the fire up. */
@@ -41,6 +42,8 @@ function VoxelFireFieldComponent(): ReactElement {
   const lightRef = useRef<PointLight>(null);
   const emittersRef = useRef(new Map<string, VoxelFireEmitter>());
   const elapsedRef = useRef(0);
+  const previousTargetRef = useRef<{ readonly x: number; readonly z: number } | null>(null);
+  const gustRef = useRef<PanGust>(ZERO_GUST);
 
   const layers = useMemo(() => new VoxelFireLayers(FIRE_LAYER_CAPACITY[tier]), [tier]);
 
@@ -63,6 +66,21 @@ function VoxelFireFieldComponent(): ReactElement {
     const { orbit } = useCameraStore.getState();
     const { byId, order, spawningId, selectedId } = useSurfaceObjectsStore.getState();
     const maxInstances = useSceneStore.getState().quality.maxInstancesPerKind;
+
+    // Moving the surface under the camera reads as travelling through air, so the
+    // fires lean against the sweep and settle once it stops.
+    const previousTarget = previousTargetRef.current;
+    previousTargetRef.current = { x: orbit.target.x, z: orbit.target.z };
+    const gustTarget =
+      previousTarget === null || reduceMotion
+        ? ZERO_GUST
+        : panGustVector(
+            orbit.target.x - previousTarget.x,
+            orbit.target.z - previousTarget.z,
+            delta,
+          );
+    gustRef.current = dampPanGust(gustRef.current, gustTarget, delta);
+    const wind = panWindSettings(gustRef.current, fire.wind);
 
     const candidates = order.flatMap((id) => {
       const object = byId[id];
@@ -138,7 +156,7 @@ function VoxelFireFieldComponent(): ReactElement {
         : emitter.yaw + dampOverMs(0, shortestAngleDelta(emitter.yaw, targetYaw), rotateMs, delta);
 
       emitter.configure(fire, isFocused);
-      emitter.update(playing ? simDelta : 0, fire);
+      emitter.update(playing ? simDelta : 0, fire, wind);
 
       layers.write(emitter, world, fire, emitter.yaw);
 
