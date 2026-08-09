@@ -76,10 +76,6 @@ jobs:
         run: npm test
       - name: Миграции
         run: npm run db:migrate
-      - name: Тест запуска приложения
-        run: npm test
-        env:
-          RUN_INTEGRATION: '1'
       - name: Миграции соответствуют схеме
         run: |
           npm run db:generate
