@@ -11,7 +11,7 @@ import { ZodValidationException } from 'nestjs-zod';
 
 import { reportError } from '@/infrastructure/sentry/sentry';
 import type { ErrorResponse } from '@/shared/contracts/common.contract';
-import { AppError, type FieldViolation, toAppError, ValidationError } from '@/shared/errors';
+import { AppError, ErrorCode, type FieldViolation, toAppError, ValidationError } from '@/shared/errors';
 
 /**
  * The one place errors become HTTP. Controllers and use cases throw domain errors
@@ -36,6 +36,7 @@ export class AppExceptionFilter implements ExceptionFilter {
     const logPayload = {
       requestId: request.id,
       kind: error.kind,
+      code: error.code,
       status: error.httpStatus,
       context: error.context,
       err: error.origin ?? error,
@@ -88,6 +89,7 @@ function toViolations(exception: ZodValidationException): readonly FieldViolatio
 /** Framework-level exceptions (404 route, throttling) reuse the same envelope. */
 class HttpExceptionAdapter extends AppError {
   readonly kind = 'unknown' as const;
+  readonly code = ErrorCode.INTERNAL_ERROR;
   readonly httpStatus: number;
 
   constructor(exception: HttpException) {
@@ -95,7 +97,7 @@ class HttpExceptionAdapter extends AppError {
     this.httpStatus = exception.getStatus();
   }
 
-  override toPublicJson(): { kind: 'unknown'; message: string } {
-    return { kind: 'unknown', message: this.message };
+  override toPublicJson(): { kind: 'unknown'; code: ErrorCode; message: string } {
+    return { kind: this.kind, code: this.code, message: this.message };
   }
 }
