@@ -46,8 +46,6 @@ function VoxelFireFieldComponent(): ReactElement {
   const emittersRef = useRef(new Map<string, VoxelFireEmitter>());
   const elapsedRef = useRef(0);
   const motionWindRef = useRef(new MotionWind());
-  // Reused every frame: allocating a wind object per fire would be garbage for
-  // no reason.
   const windRef = useRef({ strength: 0, direction: 0, minHeight: 0, maxHeight: 0 });
 
   const layers = useMemo(() => new VoxelFireLayers(FIRE_LAYER_CAPACITY[tier]), [tier]);
@@ -65,10 +63,6 @@ function VoxelFireFieldComponent(): ReactElement {
     layers.applyUniforms(settings);
   }, [layers, settings]);
 
-  /**
-   * Hand the live particle cloud to whoever needs to measure this fire on
-   * screen. Nobody else can: the particles exist only in these emitters.
-   */
   useEffect(
     () =>
       registerModelParticleSampler((id, visit) => {
@@ -117,8 +111,16 @@ function VoxelFireFieldComponent(): ReactElement {
     const { orbit } = useCameraStore.getState();
     const { byId, order, spawningId, selectedId } = useSurfaceObjectsStore.getState();
     const maxInstances = useSceneStore.getState().quality.maxInstancesPerKind;
+    const inspecting = selectedId !== null;
 
+    // While inspecting, only the selected fire is submitted to the GPU. The
+    // other emitters remain pooled in memory, so deselecting restores their
+    // exact animation state instead of making them respawn from scratch.
     const candidates = order.flatMap((id) => {
+      if (inspecting && id !== selectedId) {
+        return [];
+      }
+
       const object = byId[id];
 
       if (object === undefined) {
@@ -131,7 +133,7 @@ function VoxelFireFieldComponent(): ReactElement {
     const visible = selectVisibleObjects({
       objects: candidates,
       kind: knownKinds.fire,
-      spawningId,
+      spawningId: inspecting ? null : spawningId,
       maxInstances,
       target: orbit.target,
       cellToWorld,
@@ -145,21 +147,17 @@ function VoxelFireFieldComponent(): ReactElement {
     });
 
     const simDelta = Math.min(delta, MAX_FRAME_SECONDS) * fire.globalSpeed;
-    const dimOthers = selectedId !== null || spawningId !== null;
+    const dimOthers = inspecting || spawningId !== null;
     const emitters = emittersRef.current;
     const alive = new Set<string>();
     let focusWorld: WorldPoint | null = null;
 
-    // Dragging the surface is the only wind the app has: the gust follows how
-    // fast the camera target is travelling, and dies down when it stops.
     const gust = combineWind(fire.wind, motionWindRef.current.sample(orbit.target, delta));
     const wind = windRef.current;
     wind.strength = gust.strength;
     wind.minHeight = fire.wind.minHeight;
     wind.maxHeight = fire.wind.maxHeight;
 
-    // The selected fire turns to meet the camera; everything else relaxes back to
-    // the pose it holds on the surface.
     const viewYaw = objectYawFacingCamera(orbit.azimuth);
     const { rotateMs } = surfaceObjectMotion.inspect;
 
@@ -192,16 +190,10 @@ function VoxelFireFieldComponent(): ReactElement {
         delta,
       );
 
-      // Damped along the short arc: the turn lasts about as long as the zoom, and
-      // interrupting it mid-way (tapping another fire) never spins the long way
-      // round.
       emitter.yaw = reduceMotion
         ? targetYaw
         : emitter.yaw + dampOverMs(0, shortestAngleDelta(emitter.yaw, targetYaw), rotateMs, delta);
 
-      // Particles live in the emitter's own frame, which the renderer then spins
-      // by `yaw`. Adding the yaw here keeps the gust pointing the same way in the
-      // world no matter how the fire is turned.
       wind.direction = (gust.directionRad + emitter.yaw) * RAD_TO_DEG;
 
       emitter.configure(fire, isFocused);
@@ -214,9 +206,13 @@ function VoxelFireFieldComponent(): ReactElement {
       }
     }
 
-    for (const id of [...emitters.keys()]) {
-      if (!alive.has(id)) {
-        emitters.delete(id);
+    // Do not delete hidden emitters while inspecting. They are intentionally
+    // paused off-GPU and resume from their old state after selection is cleared.
+    if (!inspecting) {
+      for (const id of [...emitters.keys()]) {
+        if (!alive.has(id)) {
+          emitters.delete(id);
+        }
       }
     }
 
