@@ -13,96 +13,21 @@ import type { SurfaceObject } from '@/domains/surface-objects/domain/entities/Su
 import { availableTransitions } from '@/domains/surface-objects/domain/value-objects/SurfaceObjectState';
 import { useInspectStore } from '@/scene/stores/inspectStore';
 import { kindPresentation } from '@/scene/surface-objects/kindPresentation';
+import { HitboxOverlay } from './HitboxOverlay';
 
-export type ObjectDetailsSheetProps = {
-  readonly object: SurfaceObject | null;
-  readonly visible: boolean;
-  readonly icon: IconName;
-  readonly heightFraction?: number;
-  readonly onClose: () => void;
-  readonly onSoften: (object: SurfaceObject) => void;
-  readonly onToggleFavorite: (object: SurfaceObject) => void;
-  readonly onDelete: (object: SurfaceObject) => void;
-};
+export type ObjectDetailsSheetProps = { readonly object: SurfaceObject | null; readonly visible: boolean; readonly icon: IconName; readonly heightFraction?: number; readonly onClose: () => void; readonly onSoften: (object: SurfaceObject) => void; readonly onToggleFavorite: (object: SurfaceObject) => void; readonly onDelete: (object: SurfaceObject) => void };
+const STATE_LABELS = { Emerging: 'Появляется', Active: 'Активен', Fading: 'Смягчается', Settled: 'Осел' } as const;
+function noteOf(object: SurfaceObject): string | null { const note = object.metadata.note; return typeof note === 'string' && note.length > 0 ? note : null; }
 
-const STATE_LABELS = {
-  Emerging: 'Появляется',
-  Active: 'Активен',
-  Fading: 'Смягчается',
-  Settled: 'Осел',
-} as const;
-
-function noteOf(object: SurfaceObject): string | null {
-  const note = object.metadata.note;
-
-  return typeof note === 'string' && note.length > 0 ? note : null;
-}
-
-/**
- * The sheet reports its measured height, because the camera needs to know how
- * much room is actually left above it. A configured fraction is a guess; the
- * layout is the truth.
- */
-function ObjectDetailsSheetComponent({
-  object,
-  visible,
-  heightFraction,
-  onClose,
-  onSoften,
-  onToggleFavorite,
-  onDelete,
-}: ObjectDetailsSheetProps): ReactElement | null {
+function ObjectDetailsSheetComponent({ object, visible, heightFraction, onClose, onSoften, onToggleFavorite, onDelete }: ObjectDetailsSheetProps): ReactElement | null {
   const theme = useThemeColors();
   const setSheetHeight = useInspectStore((state) => state.setSheetHeight);
-
-  if (object === null) {
-    return null;
-  }
-
+  if (object === null) return null;
   const presentation = kindPresentation(object.kind);
   const note = noteOf(object);
   const canSoften = availableTransitions(object.state).includes('soften');
   const modalHeight = heightFraction === undefined ? {} : { heightFraction };
-
-  return (
-    <Modal
-      visible={visible}
-      onClose={onClose}
-      title={presentation.title}
-      {...modalHeight}
-      scrimOpacity={0}
-      onSheetLayout={setSheetHeight}
-    >
-      <View style={styles.meta}>
-        <Text variant="caption">
-          {STATE_LABELS[object.state]} · ячейка {object.cell.x}, {object.cell.y}
-        </Text>
-        {note === null ? null : <Text variant="body">{note}</Text>}
-      </View>
-      <Divider />
-      <ListRow
-        title={object.favorite ? 'В избранном' : 'Добавить в избранное'}
-        icon={object.favorite ? icons.favorite : icons.favoriteOutline}
-        iconTint={object.favorite ? theme.accent : theme.textSecondary}
-        onPress={() => onToggleFavorite(object)}
-      />
-      {canSoften ? (
-        <ListRow
-          title="Смягчить"
-          subtitle="Объект начнёт затухать"
-          icon={icons.soften}
-          onPress={() => onSoften(object)}
-        />
-      ) : null}
-      <View style={styles.spacer} />
-      <Button label="Убрать с поверхности" variant="danger" onPress={() => onDelete(object)} />
-    </Modal>
-  );
+  return <Modal visible={visible} onClose={onClose} title={presentation.title} {...modalHeight} scrimOpacity={0} overlay={<HitboxOverlay />} onSheetLayout={setSheetHeight}><View style={styles.meta}><Text variant="caption">{STATE_LABELS[object.state]} · ячейка {object.cell.x}, {object.cell.y}</Text>{note === null ? null : <Text variant="body">{note}</Text>}</View><Divider /><ListRow title={object.favorite ? 'В избранном' : 'Добавить в избранное'} icon={object.favorite ? icons.favorite : icons.favoriteOutline} iconTint={object.favorite ? theme.accent : theme.textSecondary} onPress={() => onToggleFavorite(object)} />{canSoften ? <ListRow title="Смягчить" subtitle="Объект начнёт затухать" icon={icons.soften} onPress={() => onSoften(object)} /> : null}<View style={styles.spacer} /><Button label="Убрать с поверхности" variant="danger" onPress={() => onDelete(object)} /></Modal>;
 }
-
 export const ObjectDetailsSheet = memo(ObjectDetailsSheetComponent);
-
-const styles = StyleSheet.create({
-  meta: { gap: spacing.sm },
-  spacer: { flex: 1, minHeight: spacing.md },
-});
+const styles = StyleSheet.create({ meta: { gap: spacing.sm }, spacer: { flex: 1, minHeight: spacing.md } });
