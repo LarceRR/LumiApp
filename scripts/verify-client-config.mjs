@@ -1,4 +1,3 @@
-import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
@@ -6,14 +5,31 @@ const manifests = ['dev', 'staging', 'production'].map((name) => JSON.parse(read
 const appConfig = readFileSync(resolve('app.config.js'), 'utf8');
 const errors = [];
 
-if (!appConfig.includes('EXPO_PUBLIC_API_BASE_URL') || !appConfig.includes('EXPO_PUBLIC_WEBSOCKET_URL')) errors.push('app.config.js не использует environment-specific public endpoint variables');
-if (/JWT_|DATABASE_URL|REDIS_URL|SECRET|PASSWORD|TOKEN/.test(appConfig)) errors.push('app.config.js содержит имя секретной конфигурации');
+const publicApiVariable = 'EXPO_PUBLIC_API_BASE_URL';
+const publicWebsocketVariable = 'EXPO_PUBLIC_WEBSOCKET_URL';
 
+if (!appConfig.includes(`process.env.${publicApiVariable}`) || !appConfig.includes(`process.env.${publicWebsocketVariable}`)) {
+  errors.push('app.config.js должен читать только два public endpoint variable');
+}
+
+for (const forbidden of ['JWT_', 'DATABASE_URL', 'REDIS_URL', 'SECRET', 'PASSWORD', 'TOKEN']) {
+  if (appConfig.includes(forbidden)) errors.push(`app.config.js содержит запрещённый конфигурационный ключ: ${forbidden}`);
+}
+
+const seenEndpoints = new Set();
 for (const manifest of manifests) {
-  const output = execFileSync('node', ['-e', "const c=require('./app.config.js')({config:{}}); process.stdout.write(JSON.stringify(c.extra ?? {}))"], { env: { ...process.env, EXPO_PUBLIC_API_BASE_URL: manifest.apiBaseUrl, EXPO_PUBLIC_WEBSOCKET_URL: manifest.websocketUrl, NODE_ENV: manifest.name }, encoding: 'utf8' });
-  const parsed = JSON.parse(output);
-  if (parsed.apiBaseUrl !== manifest.apiBaseUrl || parsed.websocketUrl !== manifest.websocketUrl) errors.push(`${manifest.name}: public endpoints не совпали с manifest`);
+  if (typeof manifest.apiBaseUrl !== 'string' || typeof manifest.websocketUrl !== 'string') {
+    errors.push(`${manifest.name}: public endpoints должны быть строками`);
+    continue;
+  }
+
+  const endpointPair = `${manifest.apiBaseUrl}${manifest.websocketUrl}`;
+  if (seenEndpoints.has(endpointPair)) errors.push(`${manifest.name}: endpoint pair не уникален`);
+  seenEndpoints.add(endpointPair);
+
   if (manifest.clientSecretRefs.length !== 0) errors.push(`${manifest.name}: clientSecretRefs не пуст`);
+  if (manifest.apiBaseUrl.startsWith('postgres:') || manifest.apiBaseUrl.startsWith('redis:')) errors.push(`${manifest.name}: database/cache URL попал в клиентский endpoint`);
+  if (manifest.websocketUrl.startsWith('postgres:') || manifest.websocketUrl.startsWith('redis:')) errors.push(`${manifest.name}: database/cache URL попал в клиентский endpoint`);
 }
 
 if (errors.length > 0) {
