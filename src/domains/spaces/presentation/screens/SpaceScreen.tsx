@@ -19,8 +19,10 @@ import { useSurfaceObjectsStore } from '@/domains/surface-objects/presentation/s
 import { useSurface } from '@/domains/surfaces/presentation/hooks/useSurface';
 import { selectIsSyncing, useRealtimeStore } from '@/infrastructure/realtime/realtimeStore';
 import { useRealtimeSync } from '@/infrastructure/realtime/useRealtimeSync';
+import { ModelHitboxOverlay } from '@/scene/overlays/ModelHitboxOverlay';
 import { SceneView } from '@/scene/SceneView';
 import { useCameraStore } from '@/scene/stores/cameraStore';
+import { useHitboxStore } from '@/scene/stores/hitboxStore';
 import { selectFps, useSceneStore } from '@/scene/stores/sceneStore';
 import { presentableKinds } from '@/scene/surface-objects/kindPresentation';
 
@@ -31,16 +33,21 @@ import { MemberAvatars } from '../components/MemberAvatars';
 import { ObjectDetailsSheet } from '../components/ObjectDetailsSheet';
 import { useSpaces } from '../hooks/useSpaces';
 
-/** Height of the + control, and therefore the gap the menu hangs below. */
-const ADD_BUTTON_SIZE = 40;
+/**
+ * The + control now sits under the thumb rather than in the top corner, so it
+ * is bigger: 64pt reads as the primary action instead of a fourth icon.
+ */
+const ADD_BUTTON_SIZE = 64;
+/** Height the top row reserves, matching the avatars that live there. */
+const TOP_SLOT_HEIGHT = 36;
 
 /**
  * The scene is the screen. Everything else floats above it, so the surface is
  * never pushed out of view by chrome.
  *
- * Top row, left to right: diagnostics, the people in this space, and the single
- * way to add something. The bottom is left alone — a permanent action bar over a
- * 3D surface was two buttons pretending to be furniture.
+ * Top row: diagnostics on the left, the people in this space on the right. The
+ * single way to add something now floats in the centre above the tab bar, where
+ * a primary action belongs on a phone.
  */
 export function SpaceScreen(): ReactElement {
   const insets = useSafeAreaInsets();
@@ -61,6 +68,7 @@ export function SpaceScreen(): ReactElement {
   );
   const select = useSurfaceObjectsStore((state) => state.select);
   const endInspect = useCameraStore((state) => state.endInspect);
+  const clearHitbox = useHitboxStore((state) => state.clear);
   const sheet = useUiStore((state) => state.sheet);
   const openSheet = useUiStore((state) => state.openSheet);
   const closeSheet = useUiStore((state) => state.closeSheet);
@@ -107,20 +115,25 @@ export function SpaceScreen(): ReactElement {
   }, [sheet, actions, note, closeSheet]);
 
   // Closing the sheet also gives the camera its framing back: the look-at point
-  // lifts off the sheet offset and the distance eases out.
+  // lifts off the sheet offset and the distance eases out. The debug hitbox goes
+  // with it — it described a selection that no longer exists.
   const dismissDetails = useCallback(() => {
     select(null);
     endInspect();
-  }, [endInspect, select]);
+    clearHitbox();
+  }, [clearHitbox, endInspect, select]);
 
   const isBusy = spacesLoading || (surfaceLoading && surface === null);
   const topBarTop = insets.top + spacing.sm;
+  const addButtonBottom = floatingChromeBottomInset(insets.bottom) + spacing.sm;
 
   return (
-    <View style={[styles.root, { backgroundColor: theme.surface }]}> 
+    <View style={[styles.root, { backgroundColor: theme.surface }]}>
       <View style={styles.scene}>
         <SceneView bounds={surface?.bounds ?? null} logger={logger} spaceKey={spaceId} />
       </View>
+
+      <ModelHitboxOverlay />
 
       {menuOpen ? (
         <Pressable
@@ -130,8 +143,8 @@ export function SpaceScreen(): ReactElement {
         />
       ) : null}
 
-      <View pointerEvents="box-none" style={[styles.topBar, { paddingTop: topBarTop }]}> 
-        <View pointerEvents="none" style={styles.topSlot}> 
+      <View pointerEvents="box-none" style={[styles.topBar, { paddingTop: topBarTop }]}>
+        <View pointerEvents="none" style={styles.topSlot}>
           {showOverlay ? (
             <Text variant="caption" numberOfLines={1}>
               {`${fps} fps`}
@@ -144,18 +157,8 @@ export function SpaceScreen(): ReactElement {
           ) : null}
         </View>
 
-        <View pointerEvents="box-none" style={styles.topCenter}>
-          <MemberAvatars space={activeSpace} currentUserId={currentUserId} />
-        </View>
-
         <View pointerEvents="box-none" style={[styles.topSlot, styles.topRight]}>
-          <FloatingAddButton
-            accessibilityLabel={menuOpen ? 'Закрыть меню добавления' : 'Добавить объект'}
-            expanded={menuOpen}
-            disabled={!canCreate || actions.isCreating}
-            size={ADD_BUTTON_SIZE}
-            onPress={() => setMenuOpen((open) => !open)}
-          />
+          <MemberAvatars space={activeSpace} currentUserId={currentUserId} />
         </View>
       </View>
 
@@ -163,9 +166,19 @@ export function SpaceScreen(): ReactElement {
         <AddObjectMenu
           options={addOptions}
           onSelect={startCreate}
-          top={topBarTop + ADD_BUTTON_SIZE + spacing.sm}
+          bottom={addButtonBottom + ADD_BUTTON_SIZE + spacing.sm}
         />
       ) : null}
+
+      <View pointerEvents="box-none" style={[styles.addSlot, { bottom: addButtonBottom }]}>
+        <FloatingAddButton
+          accessibilityLabel={menuOpen ? 'Закрыть меню добавления' : 'Добавить объект'}
+          expanded={menuOpen}
+          disabled={!canCreate || actions.isCreating}
+          size={ADD_BUTTON_SIZE}
+          onPress={() => setMenuOpen((open) => !open)}
+        />
+      </View>
 
       {isBusy ? (
         <View pointerEvents="none" style={styles.loader}>
@@ -176,7 +189,7 @@ export function SpaceScreen(): ReactElement {
       {!canCreate && activeSpace !== null ? (
         <View
           pointerEvents="none"
-          style={[styles.notice, { bottom: floatingChromeBottomInset(insets.bottom) + spacing.md }]}
+          style={[styles.notice, { bottom: addButtonBottom + ADD_BUTTON_SIZE + spacing.md }]}
         >
           <Text variant="caption" align="center">
             У вас нет прав добавлять объекты в это пространство
@@ -228,17 +241,18 @@ const styles = StyleSheet.create({
   },
   topSlot: {
     flex: 1,
-    minHeight: ADD_BUTTON_SIZE,
+    minHeight: TOP_SLOT_HEIGHT,
     justifyContent: 'center',
     gap: spacing.xxs,
   },
-  topCenter: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: ADD_BUTTON_SIZE,
-  },
   topRight: {
     alignItems: 'flex-end',
+  },
+  addSlot: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    alignItems: 'center',
   },
   loader: {
     ...StyleSheet.absoluteFillObject,
