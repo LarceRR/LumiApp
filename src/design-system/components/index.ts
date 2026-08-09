@@ -26,3 +26,5 @@ export { Slider } from './Slider/Slider';
 export { Switch } from './Switch/Switch';
 export type { TextProps } from './Text/Text';
 export { Text } from './Text/Text';
+export type { UserAvatarProps } from './UserAvatar/UserAvatar';
+export { avatarInitial, avatarTint, UserAvatar } from './UserAvatar/UserAvatar';
