@@ -11,7 +11,6 @@ import { useInitialFraming } from './camera/useInitialFraming';
 import { SurfaceOrbitControls } from './controls/SurfaceOrbitControls';
 import { Scene } from './Scene';
 import { useCameraStore } from './stores/cameraStore';
-import { selectQuality, useSceneStore } from './stores/sceneStore';
 import { cellToWorld } from './surface/cellToWorld';
 import { resolveSurfaceLayout } from './surface/surfaceLayout';
 import { resolveSurfaceBackground } from './surface/surfaceTheme';
@@ -24,7 +23,6 @@ function SceneViewComponent({ bounds, logger, spaceKey = null }: SceneViewProps)
   const setTarget = useCameraStore((state) => state.setTarget);
   const scheme = useColorSchemeToken();
   const background = resolveSurfaceBackground(useSettingsStore(selectSurfaceBackground), scheme);
-  const quality = useSceneStore(selectQuality);
   const framedSpaceRef = useRef<string | null>(null);
   const layout = useMemo(() => resolveSurfaceLayout(bounds), [bounds]);
   const focusWorld = useMemo(() => cellToWorld(layout.focusCell), [layout.focusCell]);
