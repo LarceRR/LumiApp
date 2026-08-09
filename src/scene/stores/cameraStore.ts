@@ -3,7 +3,7 @@ import { create } from 'zustand';
 import { cameraMotion } from '@/design-system/motion/camera';
 import { surfaceObjectMotion } from '@/design-system/motion/surface-objects';
 import type { Cell } from '@/domains/surface-objects/domain/value-objects/Cell';
-import { inspectTargetYOffset } from '@/scene/camera/cameraConfig';
+import { inspectTargetY } from '@/scene/camera/cameraConfig';
 import {
   type FocusTourState,
   focusTourFrame,
@@ -33,6 +33,16 @@ export type OrbitVelocity = {
 export type PanVelocity = {
   readonly x: number;
   readonly z: number;
+};
+
+export type FocusTourOptions = {
+  readonly mode?: 'spawn' | 'inspect';
+  /**
+   * Height of the model's hitbox centre above the surface, world units. Inspect
+   * framing centres this point in the free band above the sheet; without it the
+   * base of the object is framed and a tall flame reads too low.
+   */
+  readonly modelCenterY?: number;
 };
 
 type RecenterAnimation = {
@@ -70,7 +80,7 @@ type CameraState = {
   startFocusTour: (
     focusTarget: OrbitTarget,
     faceYaw: number,
-    options?: { readonly mode?: 'spawn' | 'inspect' },
+    options?: FocusTourOptions,
   ) => number;
   tickFocusTour: (deltaSeconds: number) => void;
   cancelFocusTour: () => void;
@@ -298,15 +308,19 @@ export const useCameraStore = create<CameraState>()((set, get) => ({
       defaultDistance,
     );
 
-    // Inspect holds the camera heading and drops the look-at point so the object
-    // rises into the free area above the sheet. Spawn still swings around to the
+    // Inspect holds the camera heading and drops the look-at point so the centre
+    // of the object's hitbox lands in the middle of the free band between the top
+    // of the display and the top of the sheet. Spawn still swings around to the
     // object's face, because there is no sheet in the way.
     const target: OrbitTarget = inspect
       ? {
           x: focusTarget.x,
-          y:
-            focusTarget.y -
-            inspectTargetYOffset(focusDistance, inspectMotion.sheetScreenFraction),
+          y: inspectTargetY(
+            focusTarget.y + (options?.modelCenterY ?? 0),
+            focusDistance,
+            orbit.elevation,
+            inspectMotion.sheetScreenFraction,
+          ),
           z: focusTarget.z,
         }
       : { ...focusTarget };
