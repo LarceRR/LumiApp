@@ -1,12 +1,6 @@
 import { index, integer, jsonb, pgTable, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
 
-/**
- * Durable replay record for retryable mutations.
- *
- * The key is scoped to the authenticated principal and operation, so a client
- * cannot replay another user's result. `requestHash` prevents reusing a key
- * with a different payload. The stored response is the canonical HTTP result.
- */
+/** Durable replay/reservation record for retryable mutations. */
 export const idempotencyRecords = pgTable(
   'idempotency_records',
   {
@@ -14,8 +8,9 @@ export const idempotencyRecords = pgTable(
     scope: text('scope').notNull(),
     key: text('key').notNull(),
     requestHash: text('request_hash').notNull(),
-    response: jsonb('response').notNull(),
-    statusCode: integer('status_code').notNull(),
+    status: text('status').notNull().default('pending'),
+    response: jsonb('response'),
+    statusCode: integer('status_code'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
     expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
   },
