@@ -13,6 +13,13 @@ function readPath(limits: AppLimits, path: string): unknown {
     );
 }
 
+/** Тест запускается из каталога backend, но не должен зависеть от этого. */
+function limitMatrixPath(): string {
+  const candidates = [resolve(process.cwd(), '../docs/limits.md'), resolve(process.cwd(), 'docs/limits.md')];
+
+  return candidates.find((candidate) => existsSync(candidate)) ?? candidates[0] ?? '';
+}
+
 describe('реестр лимитов (#38)', () => {
   it('не содержит дублирующихся ключей и путей', () => {
     const keys = LIMIT_DEFINITIONS.map((definition) => definition.key);
@@ -34,7 +41,7 @@ describe('реестр лимитов (#38)', () => {
     const limits = loadLimits({});
 
     for (const definition of LIMIT_DEFINITIONS) {
-      expect(readPath(limits, definition.path), definition.path).toBe(definition.production);
+      expect(readPath(limits, definition.path)).toBe(definition.production);
     }
   });
 
@@ -45,15 +52,12 @@ describe('реестр лимитов (#38)', () => {
     expect(limits.ai.requestsPerUserPerDay).toBe(5);
   });
 
-  it.each([
-    ['0', 'ниже минимума'],
-    ['999999999', 'выше максимума'],
-    ['abc', 'не число'],
-    ['', 'пустое значение'],
-    ['12.5', 'не целое'],
-  ])('падает на некорректном значении (%s: %s)', (value) => {
-    expect(() => loadLimits({ LIMIT_MOMENT_TEXT_MAX_LENGTH: value })).toThrow(/LIMIT_MOMENT_TEXT_MAX_LENGTH/);
-  });
+  it.each([['0'], ['999999999'], ['abc'], [''], ['12.5']])(
+    'падает на некорректном значении %s',
+    (value) => {
+      expect(() => loadLimits({ LIMIT_MOMENT_TEXT_MAX_LENGTH: value })).toThrow(/LIMIT_MOMENT_TEXT_MAX_LENGTH/);
+    },
+  );
 
   it('не печатает значения окружения в тексте ошибки', () => {
     let message = '';
@@ -69,14 +73,12 @@ describe('реестр лимитов (#38)', () => {
   });
 
   it('совпадает с матрицей в docs/limits.md', () => {
-    const documentPath = resolve(process.cwd(), '../docs/limits.md');
+    const documentPath = limitMatrixPath();
 
-    expect(existsSync(documentPath), 'docs/limits.md должен существовать').toBe(true);
+    expect(existsSync(documentPath)).toBe(true);
 
     const document = readFileSync(documentPath, 'utf8');
-    const documented = new Set(
-      [...document.matchAll(/`(LIMIT_[A-Z0-9_]+)`/g)].map((match) => match[1] ?? ''),
-    );
+    const documented = new Set([...document.matchAll(/`(LIMIT_[A-Z0-9_]+)`/g)].map((match) => match[1] ?? ''));
     const defined = new Set(LIMIT_DEFINITIONS.map((definition) => definition.key));
 
     expect([...defined].filter((key) => !documented.has(key))).toEqual([]);
@@ -85,9 +87,9 @@ describe('реестр лимитов (#38)', () => {
 
   it('документирует единицу измерения и владельца для каждого лимита', () => {
     for (const definition of LIMIT_DEFINITIONS) {
-      expect(definition.unit.length, definition.key).toBeGreaterThan(0);
-      expect(definition.owner.length, definition.key).toBeGreaterThan(0);
-      expect(definition.description.length, definition.key).toBeGreaterThan(0);
+      expect(definition.unit.length).toBeGreaterThan(0);
+      expect(definition.owner.length).toBeGreaterThan(0);
+      expect(definition.description.length).toBeGreaterThan(0);
     }
   });
 });

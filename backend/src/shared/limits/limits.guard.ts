@@ -18,7 +18,7 @@ function limitExceeded(field: string, actual: number, limit: number, unit: Limit
   ]);
 }
 
-/** Считаем кодовые точки, а не UTF-16 единицы: эмодзи не должны стоить двойного лимита. */
+/** Считаем кодовые точки, а не UTF-16 единицы: эмодзи не должно стоить двойного лимита. */
 export function assertMaxLength(field: string, value: string, limit: number): void {
   const length = [...value].length;
 
@@ -66,7 +66,7 @@ export function assertJsonWithinLimits(field: string, value: unknown, limits: Js
   let serialized: string;
 
   try {
-    serialized = JSON.stringify(value) ?? 'null';
+    serialized = JSON.stringify(value ?? null);
   } catch {
     throw new ValidationError('Значение не сериализуется в JSON', [{ path: field, message: 'not serializable' }]);
   }
@@ -85,7 +85,7 @@ export function assertJsonWithinLimits(field: string, value: unknown, limits: Js
 function jsonDepth(value: unknown, current = 1): number {
   if (value === null || typeof value !== 'object') return current;
 
-  const entries = Array.isArray(value) ? value : Object.values(value);
+  const entries: readonly unknown[] = Array.isArray(value) ? value : Object.values(value);
 
   if (entries.length === 0) return current;
 

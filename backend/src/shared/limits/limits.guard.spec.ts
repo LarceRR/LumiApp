@@ -11,6 +11,14 @@ const limits = loadLimits({});
 
 type MomentResult = { readonly ok: boolean };
 
+function objectWithKeys(count: number): Record<string, number> {
+  const result: Record<string, number> = {};
+
+  for (let index = 0; index < count; index += 1) result[`k${index}`] = 1;
+
+  return result;
+}
+
 describe('отклонение по лимиту (#38)', () => {
   it('пропускает значение на границе', () => {
     expect(() => assertMaxLength('text', 'a'.repeat(limits.moments.textMaxLength), limits.moments.textMaxLength)).not.toThrow();
@@ -59,13 +67,7 @@ describe('отклонение по лимиту (#38)', () => {
 
     expect(() => assertJsonWithinLimits('metadata', { mood: 'ok' }, jsonLimits)).not.toThrow();
     expect(() => assertJsonWithinLimits('metadata', { blob: 'x'.repeat(jsonLimits.maxBytes) }, jsonLimits)).toThrow(ValidationError);
-    expect(() =>
-      assertJsonWithinLimits(
-        'metadata',
-        Object.fromEntries(Array.from({ length: jsonLimits.maxKeys + 1 }, (_, index) => [`k${index}`, 1])),
-        jsonLimits,
-      ),
-    ).toThrow(ValidationError);
+    expect(() => assertJsonWithinLimits('metadata', objectWithKeys(jsonLimits.maxKeys + 1), jsonLimits)).toThrow(ValidationError);
 
     let deep: unknown = 'leaf';
     for (let level = 0; level < jsonLimits.maxDepth + 1; level += 1) deep = { nested: deep };
