@@ -15,6 +15,10 @@ jobs:
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: npm }
       - run: npm ci
+      - name: Environment isolation
+        run: npm run verify:environments
+      - name: Версия сборки и API
+        run: echo "environment=ci build_sha=${GITHUB_SHA} api_version=v1" > .expo/environment-smoke.txt
       - name: Типы
         run: npm run typecheck
       - name: Линтер и формат

@@ -69,7 +69,8 @@
     "format": "biome format --write .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "verify": "npm run typecheck && npm run lint && npm run test"
+    "verify:environments": "node scripts/verify-environment-isolation.mjs && node scripts/verify-client-config.mjs",
+    "verify": "npm run typecheck && npm run lint && npm run test && npm run verify:environments"
   },
   "private": true
 }
