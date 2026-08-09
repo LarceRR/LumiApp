@@ -1,0 +1,11 @@
+{
+  "name": "staging",
+  "resourceNamespace": "lumi-staging",
+  "databaseResource": "postgres/lumi-staging",
+  "redisResource": "redis/lumi-staging",
+  "storageBucket": "lumi-staging-private",
+  "apiBaseUrl": "https://api.staging.example.invalid",
+  "websocketUrl": "wss://api.staging.example.invalid/realtime",
+  "secretRefs": ["secret-manager://lumi/staging/database-url","secret-manager://lumi/staging/redis-url","secret-manager://lumi/staging/jwt-access-secret","secret-manager://lumi/staging/jwt-refresh-secret"],
+  "clientSecretRefs": []
+}

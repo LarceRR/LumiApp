@@ -1,0 +1,11 @@
+{
+  "name": "development",
+  "resourceNamespace": "lumi-dev",
+  "databaseResource": "postgres/lumi-dev",
+  "redisResource": "redis/lumi-dev",
+  "storageBucket": "lumi-dev-private",
+  "apiBaseUrl": "http://localhost:3000",
+  "websocketUrl": "ws://localhost:3000/realtime",
+  "secretRefs": ["local://backend/.env.local"],
+  "clientSecretRefs": []
+}

@@ -1,0 +1,11 @@
+{
+  "name": "production",
+  "resourceNamespace": "lumi-production",
+  "databaseResource": "postgres/lumi-production",
+  "redisResource": "redis/lumi-production",
+  "storageBucket": "lumi-production-private",
+  "apiBaseUrl": "https://api.example.invalid",
+  "websocketUrl": "wss://api.example.invalid/realtime",
+  "secretRefs": ["secret-manager://lumi/production/database-url","secret-manager://lumi/production/redis-url","secret-manager://lumi/production/jwt-access-secret","secret-manager://lumi/production/jwt-refresh-secret"],
+  "clientSecretRefs": []
+}
