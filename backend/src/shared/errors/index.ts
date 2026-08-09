@@ -1,4 +1,4 @@
-export { AppError, type AppErrorKind, type ErrorContext } from './AppError';
+export { AppError, ErrorCode, type AppErrorKind, type ErrorContext } from './AppError';
 export {
   AuthenticationError,
   AuthorizationError,

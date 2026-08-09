@@ -1,8 +1,10 @@
 import { Module } from '@nestjs/common';
 
 import { BillingModule } from '@/modules/billing/billing.module';
+import { DrizzleModule } from '@/database/drizzle/drizzle.module';
 import { SurfacesModule } from '@/modules/surfaces/surfaces.module';
 import { UsersModule } from '@/modules/users/users.module';
+import { IdempotencyService } from '@/shared/idempotency/idempotency.service';
 
 import { CreateSpaceHandler } from './application/commands/createSpace.handler';
 import { InviteMemberHandler } from './application/commands/inviteMember.handler';
@@ -14,18 +16,9 @@ import { DrizzleSpaceRepository } from './infrastructure/repositories/drizzleSpa
 import { SpacesController } from './presentation/controllers/spaces.controller';
 
 @Module({
-  imports: [UsersModule, SurfacesModule, BillingModule],
+  imports: [DrizzleModule, UsersModule, SurfacesModule, BillingModule],
   controllers: [SpacesController],
-  providers: [
-    { provide: SPACE_REPOSITORY, useClass: DrizzleSpaceRepository },
-    SpaceAccessService,
-    ListSpacesHandler,
-    CreateSpaceHandler,
-    InviteMemberHandler,
-    RespondToInvitationHandler,
-  ],
-  // SpaceAccessService is the shared entry point for permission checks, so guards
-  // and other modules can depend on it without reaching for the repository.
+  providers: [{ provide: SPACE_REPOSITORY, useClass: DrizzleSpaceRepository }, IdempotencyService, SpaceAccessService, ListSpacesHandler, CreateSpaceHandler, InviteMemberHandler, RespondToInvitationHandler],
   exports: [SPACE_REPOSITORY, SpaceAccessService, CreateSpaceHandler],
 })
 export class SpacesModule {}

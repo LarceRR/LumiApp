@@ -1,8 +1,20 @@
 /**
- * Root of the error hierarchy. Every failure the API can produce is one of these,
- * so the HTTP filter maps errors in exactly one place and the frontend receives a
- * stable `kind` instead of parsing messages.
+ * Stable machine-readable codes are part of the public API contract. Clients
+ * branch on `code`, never on localized error messages.
  */
+export const ErrorCode = {
+  UNAUTHORIZED: 'UNAUTHORIZED',
+  FORBIDDEN: 'FORBIDDEN',
+  NOT_FOUND: 'NOT_FOUND',
+  CONFLICT: 'CONFLICT',
+  VALIDATION_FAILED: 'VALIDATION_FAILED',
+  DOMAIN_RULE_VIOLATION: 'DOMAIN_RULE_VIOLATION',
+  INFRASTRUCTURE_UNAVAILABLE: 'INFRASTRUCTURE_UNAVAILABLE',
+  INTERNAL_ERROR: 'INTERNAL_ERROR',
+} as const;
+
+export type ErrorCode = (typeof ErrorCode)[keyof typeof ErrorCode];
+
 export type AppErrorKind =
   | 'validation'
   | 'domain'
@@ -17,6 +29,7 @@ export type ErrorContext = Readonly<Record<string, unknown>>;
 
 export abstract class AppError extends Error {
   abstract readonly kind: AppErrorKind;
+  abstract readonly code: ErrorCode;
   abstract readonly httpStatus: number;
 
   readonly context: ErrorContext;
@@ -31,7 +44,7 @@ export abstract class AppError extends Error {
   }
 
   /** Only what is safe to send to a client. */
-  toPublicJson(): { kind: AppErrorKind; message: string; details?: ErrorContext } {
-    return { kind: this.kind, message: this.message };
+  toPublicJson(): { kind: AppErrorKind; code: ErrorCode; message: string; details?: ErrorContext } {
+    return { kind: this.kind, code: this.code, message: this.message };
   }
 }

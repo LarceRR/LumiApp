@@ -15,6 +15,17 @@ export const versionSchema = z
   .min(1)
   .describe('Aggregate version for optimistic locking');
 
+export const errorCodeSchema = z.enum([
+  'UNAUTHORIZED',
+  'FORBIDDEN',
+  'NOT_FOUND',
+  'CONFLICT',
+  'VALIDATION_FAILED',
+  'DOMAIN_RULE_VIOLATION',
+  'INFRASTRUCTURE_UNAVAILABLE',
+  'INTERNAL_ERROR',
+]);
+
 export const errorResponseSchema = z.object({
   kind: z.enum([
     'validation',
@@ -26,6 +37,7 @@ export const errorResponseSchema = z.object({
     'conflict',
     'unknown',
   ]),
+  code: errorCodeSchema,
   message: z.string(),
   details: z.record(z.string(), z.unknown()).optional(),
   requestId: z.string().optional(),

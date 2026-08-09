@@ -1,8 +1,7 @@
-import { memo, type ReactElement } from "react";
-import RNSlider from "@react-native-community/slider";
+import { memo, type ReactElement } from 'react';
+import RNSlider from '@react-native-community/slider';
 
-import { colors } from "../../colors/colors";
-import { spacing } from "../../spacing/spacing";
+import { colors } from '../../colors/colors';
 
 export type SliderProps = {
   readonly value: number;
@@ -13,14 +12,7 @@ export type SliderProps = {
   readonly accessibilityLabel: string;
 };
 
-function SliderComponent({
-  value,
-  min,
-  max,
-  step,
-  onChange,
-  accessibilityLabel,
-}: SliderProps): ReactElement {
+function SliderComponent({ value, min, max, step, onChange, accessibilityLabel }: SliderProps): ReactElement {
   return (
     <RNSlider
       accessibilityLabel={accessibilityLabel}

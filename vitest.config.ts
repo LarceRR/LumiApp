@@ -1,12 +1,6 @@
 import { resolve } from 'node:path';
 import { defineConfig } from 'vitest/config';
 
-/**
- * Unit tests cover pure logic only — domain rules, the offline queue, coordinate
- * math. Anything that touches native modules is covered by component tests
- * (React Native Testing Library) and E2E (Detox) instead, so this suite stays fast
- * and needs no native runtime.
- */
 export default defineConfig({
   test: {
     globals: false,
@@ -15,6 +9,10 @@ export default defineConfig({
     exclude: ['**/node_modules/**', 'backend/**'],
   },
   resolve: {
-    alias: { '@': resolve(__dirname, 'src') },
+    alias: [
+      { find: 'react-native', replacement: resolve(__dirname, 'test/vitest/react-native.ts') },
+      { find: 'expo-router', replacement: resolve(__dirname, 'test/vitest/expo-router.ts') },
+      { find: '@', replacement: resolve(__dirname, 'src') },
+    ],
   },
 });
