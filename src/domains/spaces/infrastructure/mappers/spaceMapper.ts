@@ -9,27 +9,17 @@ import { isSpacePermission, type SpacePermission } from '../../domain/value-obje
 
 function toMember(dto: SpaceMemberDto): SpaceMember {
   const permissions: SpacePermission[] = [];
-  for (const permission of dto.permissions) {
-    if (isSpacePermission(permission)) permissions.push(permission);
-  }
-
-  return {
-    userId: userId(dto.userId),
-    role: dto.role,
-    permissions,
-    displayName: dto.displayName,
-  };
+  for (const permission of dto.permissions) if (isSpacePermission(permission)) permissions.push(permission);
+  return { userId: userId(dto.userId), role: dto.role, permissions, displayName: dto.displayName };
 }
 
 export function toSpace(dto: SpaceDto): Space {
   const createdAt = Date.parse(dto.createdAt);
-  const memberIds = dto.members.map((member) => userId(member.userId));
-
   return {
     id: spaceId(dto.id),
     type: dto.type,
     title: dto.title,
-    memberIds,
+    memberIds: dto.members.map((member) => userId(member.userId)),
     members: dto.members.map(toMember),
     createdAt: Number.isNaN(createdAt) ? 0 : createdAt,
     version: dto.version,
@@ -42,14 +32,7 @@ export function toSpaceDto(entity: Space): SpaceDto {
     type: entity.type,
     title: entity.title,
     ownerId: entity.memberIds[0] ?? entity.id,
-    members: entity.members.map((member) => ({
-      userId: member.userId,
-      role: member.role,
-      permissions: member.permissions,
-      displayName: member.displayName,
-      avatarUrl: null,
-      joinedAt: new Date(entity.createdAt).toISOString(),
-    })),
+    members: entity.members.map((member) => ({ userId: member.userId, role: member.role, permissions: member.permissions, displayName: member.displayName, avatarUrl: null, joinedAt: new Date(entity.createdAt).toISOString() })),
     createdAt: new Date(entity.createdAt).toISOString(),
     version: entity.version,
   };
@@ -57,26 +40,20 @@ export function toSpaceDto(entity: Space): SpaceDto {
 
 export function toInvitation(dto: InvitationDto): Invitation {
   const createdAt = Date.parse(dto.createdAt);
-
   return {
     id: dto.id,
     spaceId: spaceId(dto.spaceId),
-    status: dto.status,
+    status: toInvitationStatus(dto.status),
     invitedEmail: email(dto.inviteeEmail),
     createdAt: Number.isNaN(createdAt) ? 0 : createdAt,
   };
 }
 
 export function toInvitationDto(entity: Invitation): InvitationDto {
-  return {
-    id: entity.id,
-    spaceId: entity.spaceId,
-    spaceTitle: '',
-    invitedByUserId: '',
-    inviteeEmail: entity.invitedEmail,
-    permissions: [],
-    status: entity.status,
-    createdAt: new Date(entity.createdAt).toISOString(),
-    respondedAt: null,
-  };
+  return { id: entity.id, spaceId: entity.spaceId, spaceTitle: '', invitedByUserId: '', inviteeEmail: entity.invitedEmail, permissions: [], status: entity.status, createdAt: new Date(entity.createdAt).toISOString(), respondedAt: null };
+}
+
+function toInvitationStatus(status: InvitationDto['status']): Invitation['status'] {
+  if (status === 'Pending' || status === 'Accepted' || status === 'Rejected') return status;
+  return 'Pending';
 }
