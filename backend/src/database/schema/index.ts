@@ -1,6 +1,7 @@
 export * from './ai';
 export * from './analytics';
 export * from './billing';
+export * from './idempotency';
 export * from './media';
 export * from './notifications';
 export * from './sessions';
