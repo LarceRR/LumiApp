@@ -13,17 +13,21 @@ import { cellToWorld, type WorldPoint } from '@/scene/surface/cellToWorld';
 import { dampOverMs, shortestAngleDelta } from '@/shared/utils/math';
 
 import { isLostInFog, objectFogFactor, viewDepth } from '../core/fogVisibility';
+import { registerModelParticleSampler } from '../core/modelSampler';
 import { objectYawFacingCamera } from '../core/objectFacing';
 import { objectAnimationPlaying, objectOpacityTarget } from '../core/objectFocus';
 import { objectYawRadians } from '../core/objectYaw';
 import { selectVisibleObjects } from '../core/selectVisibleObjects';
 import { VoxelFireEmitter } from './fireEmitter';
 import { FIRE_LIGHT, fireLightIntensity } from './fireLight';
+import type { FireParticleLayer } from './fireParticleLayer';
 import { useFireSettingsStore } from './fireSettingsStore';
+import { combineWind, MotionWind } from './motionWind';
 import { FIRE_LAYER_CAPACITY, VoxelFireLayers } from './voxelFireLayers';
 
 /** Longest frame the simulation will integrate, so a stall never blows the fire up. */
 const MAX_FRAME_SECONDS = 0.05;
+const RAD_TO_DEG = 180 / Math.PI;
 
 /**
  * Every fire on the surface: two instanced layers of emissive voxels.
@@ -41,6 +45,10 @@ function VoxelFireFieldComponent(): ReactElement {
   const lightRef = useRef<PointLight>(null);
   const emittersRef = useRef(new Map<string, VoxelFireEmitter>());
   const elapsedRef = useRef(0);
+  const motionWindRef = useRef(new MotionWind());
+  // Reused every frame: allocating a wind object per fire would be garbage for
+  // no reason.
+  const windRef = useRef({ strength: 0, direction: 0, minHeight: 0, maxHeight: 0 });
 
   const layers = useMemo(() => new VoxelFireLayers(FIRE_LAYER_CAPACITY[tier]), [tier]);
 
@@ -56,6 +64,52 @@ function VoxelFireFieldComponent(): ReactElement {
   useEffect(() => {
     layers.applyUniforms(settings);
   }, [layers, settings]);
+
+  /**
+   * Hand the live particle cloud to whoever needs to measure this fire on
+   * screen. Nobody else can: the particles exist only in these emitters.
+   */
+  useEffect(
+    () =>
+      registerModelParticleSampler((id, visit) => {
+        const emitter = emittersRef.current.get(id);
+
+        if (emitter === undefined) {
+          return false;
+        }
+
+        const object = useSurfaceObjectsStore.getState().byId[id];
+
+        if (object === undefined) {
+          return false;
+        }
+
+        const { worldScale } = useFireSettingsStore.getState().settings;
+        const origin = cellToWorld(object.cell);
+        const cos = Math.cos(emitter.yaw);
+        const sin = Math.sin(emitter.yaw);
+
+        const emit = (layer: FireParticleLayer): void => {
+          layer.forEach((x, y, z, scale) => {
+            const localX = x * cos + z * sin;
+            const localZ = -x * sin + z * cos;
+
+            visit(
+              origin.x + localX * worldScale,
+              origin.y + y * worldScale,
+              origin.z + localZ * worldScale,
+              scale * worldScale,
+            );
+          });
+        };
+
+        emit(emitter.ember);
+        emit(emitter.flame);
+
+        return true;
+      }),
+    [],
+  );
 
   useFrame((_, delta) => {
     const fire = useFireSettingsStore.getState().settings;
@@ -95,6 +149,14 @@ function VoxelFireFieldComponent(): ReactElement {
     const emitters = emittersRef.current;
     const alive = new Set<string>();
     let focusWorld: WorldPoint | null = null;
+
+    // Dragging the surface is the only wind the app has: the gust follows how
+    // fast the camera target is travelling, and dies down when it stops.
+    const gust = combineWind(fire.wind, motionWindRef.current.sample(orbit.target, delta));
+    const wind = windRef.current;
+    wind.strength = gust.strength;
+    wind.minHeight = fire.wind.minHeight;
+    wind.maxHeight = fire.wind.maxHeight;
 
     // The selected fire turns to meet the camera; everything else relaxes back to
     // the pose it holds on the surface.
@@ -137,8 +199,13 @@ function VoxelFireFieldComponent(): ReactElement {
         ? targetYaw
         : emitter.yaw + dampOverMs(0, shortestAngleDelta(emitter.yaw, targetYaw), rotateMs, delta);
 
+      // Particles live in the emitter's own frame, which the renderer then spins
+      // by `yaw`. Adding the yaw here keeps the gust pointing the same way in the
+      // world no matter how the fire is turned.
+      wind.direction = (gust.directionRad + emitter.yaw) * RAD_TO_DEG;
+
       emitter.configure(fire, isFocused);
-      emitter.update(playing ? simDelta : 0, fire);
+      emitter.update(playing ? simDelta : 0, fire, wind);
 
       layers.write(emitter, world, fire, emitter.yaw);
 

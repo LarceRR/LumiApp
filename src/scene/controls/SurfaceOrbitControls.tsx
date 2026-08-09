@@ -3,12 +3,15 @@ import { StyleSheet, useWindowDimensions, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 
 import { cameraMotion } from '@/design-system/motion/camera';
+import { surfaceObjectMotion } from '@/design-system/motion/surface-objects';
 import { knownKinds } from '@/domains/surface-objects/domain/value-objects/SurfaceObjectKind';
 import { useSurfaceObjectsStore } from '@/domains/surface-objects/presentation/stores/surfaceObjectsStore';
 import { panDeltaFromScreen, worldUnitsPerPixel } from '@/scene/camera/cameraConfig';
+import { getModelScreenBounds } from '@/scene/objects/core/modelScreenBounds';
 import { objectYawRadians } from '@/scene/objects/core/objectYaw';
 import { groundHitFromScreen, pickNearestObject } from '@/scene/objects/core/pickObjectAtScreen';
 import { useCameraStore } from '@/scene/stores/cameraStore';
+import { useInspectStore } from '@/scene/stores/inspectStore';
 import { useSceneStore } from '@/scene/stores/sceneStore';
 import { cellToWorld } from '@/scene/surface/cellToWorld';
 
@@ -255,6 +258,8 @@ function SurfaceOrbitControlsComponent({ children }: SurfaceOrbitControlsProps):
   const handleSingleTap = useCallback(
     (screenX: number, screenY: number): void => {
       const camera = useCameraStore.getState();
+      const inspect = useInspectStore.getState();
+
       if (camera.focusTour !== null) {
         return;
       }
@@ -274,13 +279,40 @@ function SurfaceOrbitControlsComponent({ children }: SurfaceOrbitControlsProps):
       });
       const picked = pickNearestObject(hit, fires);
       if (picked === null) {
+        inspect.clearHitbox();
         return;
       }
 
       select(picked.id);
+
+      // Measured before the camera moves: this is what the user was looking at
+      // when their finger landed.
+      const bounds = getModelScreenBounds(picked.id, {
+        width: screenWidth,
+        height: screenHeight,
+      });
+      inspect.setHitbox(bounds);
+
+      // Free band = top of the display → top of the sheet. The sheet reports its
+      // real height once it has laid out; before that we fall back to the
+      // fraction it is configured with.
+      const sheetHeight =
+        inspect.sheetHeight ?? screenHeight * surfaceObjectMotion.inspect.sheetScreenFraction;
+      const sheetTopPx = Math.max(0, screenHeight - sheetHeight);
+
       const world = cellToWorld(picked.cell);
       camera.startFocusTour({ x: world.x, y: 0, z: world.z }, objectYawRadians(picked.id), {
         mode: 'inspect',
+        ...(bounds === null
+          ? {}
+          : {
+              framing: {
+                screenHeight,
+                sheetTopPx,
+                centerLiftPx: bounds.centerLiftPx,
+                measuredAtDistance: camera.orbit.distance,
+              },
+            }),
       });
     },
     [screenHeight, screenWidth],
