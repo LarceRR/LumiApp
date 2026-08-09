@@ -21,17 +21,55 @@ export function defaultVisibleRows(screenHeight: number): number {
   return Math.max(1, screenHeight / SURFACE_CELL_SIZE_PX);
 }
 
+/** World height the screen spans at a given distance from the camera. */
+export function visibleWorldHeight(distance: number): number {
+  const fovRad = cameraConfig.fov * DEG_TO_RAD;
+  return 2 * distance * Math.tan(fovRad / 2);
+}
+
 /**
- * Drop the camera target just enough to put the object in the visual middle of
- * the open band between the top edge and the sheet top. The old `fraction / 2`
- * value aimed at the midpoint of the entire upper band, which left the fire
- * visibly too high on phones with a tall details sheet.
+ * Legacy inspect offset: guesses the open band from a hard-coded fraction.
+ *
+ * Kept as the fallback for the first tap of a session, before the details
+ * sheet has ever laid out and there is nothing real to measure.
  */
 export function inspectTargetYOffset(distance: number, occupiedFraction: number): number {
-  const fovRad = cameraConfig.fov * DEG_TO_RAD;
-  const visibleHeight = 2 * distance * Math.tan(fovRad / 2);
   const openBandPosition = occupiedFraction * 0.22;
-  return visibleHeight * openBandPosition;
+  return visibleWorldHeight(distance) * openBandPosition;
+}
+
+export type InspectFramingMeasurements = {
+  /** Distance the camera will hold once the inspect tour lands. */
+  readonly focusDistance: number;
+  readonly screenHeight: number;
+  /** Top edge of the details sheet, px from the top of the display. */
+  readonly sheetTopPx: number;
+  /** Gap between the model's base and its visual centre, px, at focus distance. */
+  readonly objectCenterLiftPx: number;
+};
+
+/**
+ * Drop the camera target so the model's measured centre lands in the middle of
+ * the free band between the top of the display and the top of the sheet.
+ *
+ * Because `orbitPosition` derives the camera from the target, lowering the
+ * target translates the whole rig down: a world offset maps to screen pixels
+ * exactly, no small-angle hand-waving required.
+ */
+export function inspectTargetYOffsetFor(framing: InspectFramingMeasurements): number {
+  const { focusDistance, screenHeight, sheetTopPx, objectCenterLiftPx } = framing;
+
+  if (screenHeight <= 0 || focusDistance <= 0) {
+    return 0;
+  }
+
+  const worldHeight = visibleWorldHeight(focusDistance);
+  const bandCenterPx = Math.max(0, sheetTopPx) / 2;
+  const naturalCenterPx = screenHeight / 2 - objectCenterLiftPx;
+  const shiftPx = naturalCenterPx - bandCenterPx;
+  const offset = (shiftPx / screenHeight) * worldHeight;
+
+  return Math.min(worldHeight * 0.45, Math.max(0, offset));
 }
 
 export function orbitPosition(orbit: {
@@ -59,7 +97,5 @@ export function panDeltaFromScreen(changeX: number, changeY: number, azimuth: nu
 }
 
 export function worldUnitsPerPixel(distance: number, screenHeight: number): number {
-  const fovRad = cameraConfig.fov * DEG_TO_RAD;
-  const visibleHeight = 2 * distance * Math.tan(fovRad / 2);
-  return visibleHeight / Math.max(screenHeight, 1);
+  return visibleWorldHeight(distance) / Math.max(screenHeight, 1);
 }

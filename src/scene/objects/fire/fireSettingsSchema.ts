@@ -26,6 +26,11 @@ function layerFields(prefix: 'ember' | 'flame'): SettingsSchema[number]['fields'
 /**
  * Ordered top to bottom exactly as the settings sheet renders it.
  * Adding a knob here is the only step needed to expose it in the app.
+ *
+ * Wind is deliberately absent. It is still fully implemented
+ * (`FireWindSettings`, `FireParticleLayer.update`, `motionWind.ts`), but it is
+ * no longer a slider: the gust is derived from how fast the surface is being
+ * dragged, so a hand-tuned constant would only fight the movement.
  */
 export const fireSettingsSchema: SettingsSchema = [
   settingsGroup('general', 'Общее', [
@@ -36,12 +41,6 @@ export const fireSettingsSchema: SettingsSchema = [
   ]),
   settingsGroup('flame', 'Пламя', layerFields('flame')),
   settingsGroup('ember', 'Угли', layerFields('ember')),
-  settingsGroup('wind', 'Ветер', [
-    numberField('wind.strength', 'Сила', 0, 3, 0.01),
-    numberField('wind.direction', 'Направление', 0, 360, 1),
-    numberField('wind.minHeight', 'Нижняя граница', -1, 3, 0.1),
-    numberField('wind.maxHeight', 'Верхняя граница', 0, 5, 0.1),
-  ]),
   // Ручки настоящего постпроцесса: порог решает, что вообще светится, радиус —
   // насколько широко, экспозиция — насколько ярким остаётся кадр целиком.
   settingsGroup('bloom', 'Свечение', [
