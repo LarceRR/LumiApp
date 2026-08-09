@@ -67,9 +67,11 @@ function UserAvatarComponent({
   const theme = useThemeColors();
   const [failed, setFailed] = useState(false);
 
+  // A new URL deserves a fresh attempt; otherwise one bad photo poisons the
+  // component for the rest of its life.
   useEffect(() => {
     setFailed(false);
-  }, []);
+  }, [imageUri]);
 
   const showsImage = imageUri !== null && imageUri.length > 0 && !failed;
   const circle = {
@@ -78,8 +80,7 @@ function UserAvatarComponent({
     borderRadius: size / 2,
     backgroundColor: avatarTint(seed ?? name),
   };
-  const ring =
-    ringColor === null ? null : { borderWidth: ringWidth, borderColor: ringColor };
+  const ring = ringColor === null ? null : { borderWidth: ringWidth, borderColor: ringColor };
 
   return (
     <View
