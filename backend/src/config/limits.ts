@@ -1,15 +1,13 @@
-import { z } from 'zod';
-
 /**
  * Продуктовые и ресурсные лимиты (issue #38).
  *
- * Один реестр — единственный источник правды. Из него собирается zod-схема
+ * Один реестр — единственный источник правды. Из него собирается разбор
  * окружения, типизированный объект `AppLimits` для DI и матрица в
  * `docs/limits.md`. Ни одно значение не является клиентской константой: клиент
  * может показать подсказку, но решение всегда принимает бэкенд.
  *
  * Значение задаётся env-ключом, поэтому его можно менять без релиза. Пустое или
- * нечисловое значение — ошибка старта, а не тихий фолбэк на дефолт.
+ * нецелое значение — ошибка старта, а не тихий фолбэк на дефолт.
  */
 
 export type LimitUnit =
@@ -154,35 +152,51 @@ export type AppLimits = {
 
 export const LIMITS = Symbol('LIMITS');
 
+const INTEGER = /^-?\d+$/;
+
 /**
- * Читает лимиты из окружения. Ошибка сообщает только имя ключа и причину:
- * значения окружения в лог не попадают (см. docs/foundation-contracts.md).
+ * Читает лимиты из окружения. Сообщение об ошибке содержит ключ, допустимый
+ * диапазон и единицу измерения — но не другие значения окружения
+ * (см. docs/foundation-contracts.md).
  */
 export function loadLimits(source: NodeJS.ProcessEnv = process.env): AppLimits {
-  const shape: Record<string, z.ZodType<number>> = {};
+  const values: Record<string, number> = {};
+  const failures: string[] = [];
 
   for (const definition of LIMIT_DEFINITIONS) {
-    shape[definition.key] = z.coerce
-      .number()
-      .int()
-      .min(definition.min)
-      .max(definition.max)
-      .default(definition.production);
+    const raw = source[definition.key];
+    const range = `${definition.min}–${definition.max} ${definition.unit}`;
+
+    if (raw === undefined) {
+      values[definition.key] = definition.production;
+      continue;
+    }
+
+    const trimmed = raw.trim();
+
+    if (!INTEGER.test(trimmed)) {
+      failures.push(`${definition.key}: ожидается целое число в диапазоне ${range}`);
+      continue;
+    }
+
+    const parsed = Number(trimmed);
+
+    if (parsed < definition.min || parsed > definition.max) {
+      failures.push(`${definition.key}: ${parsed} вне диапазона ${range}`);
+      continue;
+    }
+
+    values[definition.key] = parsed;
   }
 
-  const parsed = z.object(shape).safeParse(source);
-
-  if (!parsed.success) {
-    const details = parsed.error.issues.map((issue) => `${issue.path.join('.')}: ${issue.message}`).join('\n  ');
-
-    throw new Error(`Некорректные лимиты (issue #38):\n  ${details}`);
+  if (failures.length > 0) {
+    throw new Error(`Некорректные лимиты (issue #38):\n  ${failures.join('\n  ')}`);
   }
 
-  const values: Record<string, number> = parsed.data;
   const at = (key: string): number => {
     const value = values[key];
 
-    if (value === undefined) throw new Error(`Лимит ${key} отсутствует в схеме окружения`);
+    if (value === undefined) throw new Error(`Лимит ${key} отсутствует в реестре LIMIT_DEFINITIONS`);
 
     return value;
   };
