@@ -11,7 +11,7 @@ import { selectHitbox, useInspectStore } from '@/scene/stores/inspectStore';
 const HITBOX_COLOR = '#ffb300';
 const DOT_SIZE = 8;
 const LABEL_WIDTH = 250;
-const LABEL_HEIGHT = 72;
+const LABEL_HEIGHT = 86;
 
 function round(value: number): string {
   return Math.round(value).toString();
@@ -21,20 +21,35 @@ type ZoneLabelProps = {
   readonly left: number;
   readonly top: number;
   readonly title: string;
+  readonly centerX: number;
+  readonly centerY: number;
   readonly x: number;
   readonly y: number;
   readonly width: number;
   readonly height: number;
 };
 
-function ZoneLabel({ left, top, title, x, y, width, height }: ZoneLabelProps): ReactElement {
+function ZoneLabel({
+  left,
+  top,
+  title,
+  centerX,
+  centerY,
+  x,
+  y,
+  width,
+  height,
+}: ZoneLabelProps): ReactElement {
   return (
     <View style={[styles.label, { left, top }]}>
       <Text variant="caption" color={HITBOX_COLOR}>
         {title}
       </Text>
       <Text variant="caption" color={HITBOX_COLOR}>
-        {`x ${round(x)}, y ${round(y)} · ${round(width)}×${round(height)} px`}
+        {`центр ${round(centerX)}, ${round(centerY)} · ${round(width)}×${round(height)} px`}
+      </Text>
+      <Text variant="caption" color={HITBOX_COLOR}>
+        {`левый верх ${round(x)}, ${round(y)}`}
       </Text>
     </View>
   );
@@ -62,8 +77,14 @@ function HitboxOverlayComponent(): ReactElement | null {
     x: viewport.width / 2,
     y: freeZoneHeight / 2,
   };
-  const labelLeft = Math.max(spacing.sm, Math.min(viewport.width - LABEL_WIDTH - spacing.sm, center.x - LABEL_WIDTH / 2));
-  const hitboxLabelTop = Math.min(viewport.height - LABEL_HEIGHT - spacing.sm, screen.maxY + spacing.sm);
+  const labelLeft = Math.max(
+    spacing.sm,
+    Math.min(viewport.width - LABEL_WIDTH - spacing.sm, center.x - LABEL_WIDTH / 2),
+  );
+  const hitboxLabelTop = Math.min(
+    viewport.height - LABEL_HEIGHT - spacing.sm,
+    screen.maxY + spacing.sm,
+  );
   const freeZoneLabelTop = Math.max(spacing.sm, freeZoneCenter.y + DOT_SIZE + spacing.sm);
 
   return (
@@ -88,12 +109,21 @@ function HitboxOverlayComponent(): ReactElement | null {
           },
         ]}
       />
-      <View style={[styles.dot, { left: freeZoneCenter.x - DOT_SIZE / 2, top: freeZoneCenter.y - DOT_SIZE / 2 }]} />
-      <View style={[styles.dot, { left: center.x - DOT_SIZE / 2, top: center.y - DOT_SIZE / 2 }]} />
+      <View
+        style={[
+          styles.dot,
+          { left: freeZoneCenter.x - DOT_SIZE / 2, top: freeZoneCenter.y - DOT_SIZE / 2 },
+        ]}
+      />
+      <View
+        style={[styles.dot, { left: center.x - DOT_SIZE / 2, top: center.y - DOT_SIZE / 2 }]}
+      />
       <ZoneLabel
         left={Math.max(spacing.sm, viewport.width / 2 - LABEL_WIDTH / 2)}
         top={freeZoneLabelTop}
         title="Свободная зона"
+        centerX={freeZoneCenter.x}
+        centerY={freeZoneCenter.y}
         x={0}
         y={0}
         width={viewport.width}
@@ -103,6 +133,8 @@ function HitboxOverlayComponent(): ReactElement | null {
         left={labelLeft}
         top={hitboxLabelTop}
         title="Хитбокс огня"
+        centerX={center.x}
+        centerY={center.y}
         x={screen.minX}
         y={screen.minY}
         width={screen.width}
