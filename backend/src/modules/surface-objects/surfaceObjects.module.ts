@@ -2,6 +2,7 @@ import { forwardRef, Module } from '@nestjs/common';
 
 import { SpacesModule } from '@/modules/spaces/spaces.module';
 import { SurfacesModule } from '@/modules/surfaces/surfaces.module';
+import { IdempotencyService } from '@/shared/idempotency/idempotency.service';
 
 import { ChangeSurfaceObjectStateHandler } from './application/commands/changeSurfaceObjectState.handler';
 import { CreateSurfaceObjectHandler } from './application/commands/createSurfaceObject.handler';
@@ -16,6 +17,7 @@ import { SurfaceObjectsController } from './presentation/controllers/surfaceObje
   controllers: [SurfaceObjectsController],
   providers: [
     { provide: SURFACE_OBJECT_REPOSITORY, useClass: DrizzleSurfaceObjectRepository },
+    IdempotencyService,
     CreateSurfaceObjectHandler,
     ChangeSurfaceObjectStateHandler,
     UpdateSurfaceObjectHandler,
