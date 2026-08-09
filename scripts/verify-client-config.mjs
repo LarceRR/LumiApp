@@ -10,11 +10,7 @@ if (!appConfig.includes('EXPO_PUBLIC_API_BASE_URL') || !appConfig.includes('EXPO
 if (/JWT_|DATABASE_URL|REDIS_URL|SECRET|PASSWORD|TOKEN/.test(appConfig)) errors.push('app.config.js содержит имя секретной конфигурации');
 
 for (const manifest of manifests) {
-  const env = manifest.name === 'development' ? 'development' : manifest.name;
-  const output = execFileSync('node', ['-e', `process.stdout.write(JSON.stringify({apiBaseUrl: process.env.EXPO_PUBLIC_API_BASE_URL ?? null, websocketUrl: process.env.EXPO_PUBLIC_WEBSOCKET_URL ?? null}))`], {
-    env: { ...process.env, EXPO_PUBLIC_API_BASE_URL: manifest.apiBaseUrl, EXPO_PUBLIC_WEBSOCKET_URL: manifest.websocketUrl, NODE_ENV: env },
-    encoding: 'utf8',
-  });
+  const output = execFileSync('node', ['-e', "const c=require('./app.config.js')({config:{}}); process.stdout.write(JSON.stringify(c.extra ?? {}))"], { env: { ...process.env, EXPO_PUBLIC_API_BASE_URL: manifest.apiBaseUrl, EXPO_PUBLIC_WEBSOCKET_URL: manifest.websocketUrl, NODE_ENV: manifest.name }, encoding: 'utf8' });
   const parsed = JSON.parse(output);
   if (parsed.apiBaseUrl !== manifest.apiBaseUrl || parsed.websocketUrl !== manifest.websocketUrl) errors.push(`${manifest.name}: public endpoints не совпали с manifest`);
   if (manifest.clientSecretRefs.length !== 0) errors.push(`${manifest.name}: clientSecretRefs не пуст`);

@@ -14,13 +14,12 @@ for (const { file, value } of manifests) {
   for (const field of ['name', 'resourceNamespace', 'databaseResource', 'redisResource', 'storageBucket', 'apiBaseUrl', 'websocketUrl']) {
     if (typeof value[field] !== 'string' || value[field].length === 0) errors.push(`${file}: отсутствует ${field}`);
   }
-
   if (!requiredNames.includes(value.name)) errors.push(`${file}: неизвестное имя окружения ${value.name}`);
   if (seenNames.has(value.name)) errors.push(`дублируется окружение ${value.name}`);
   seenNames.add(value.name);
   if (!Array.isArray(value.secretRefs) || value.secretRefs.length === 0) errors.push(`${file}: нет secretRefs`);
-  if (value.clientSecretRefs?.length !== 0) errors.push(`${file}: секреты нельзя передавать клиенту`);
-  if (/password|secret|token|postgres://|redis:///i.test(JSON.stringify(value))) errors.push(`${file}: manifest содержит секрет или credential вместо ссылки`);
+  if (!Array.isArray(value.clientSecretRefs) || value.clientSecretRefs.length !== 0) errors.push(`${file}: секреты нельзя передавать клиенту`);
+  if (/password=|token=|postgres://|redis://|-----BEGIN/i.test(JSON.stringify(value))) errors.push(`${file}: manifest содержит credential вместо ссылки`);
 }
 
 for (const field of ['resourceNamespace', 'databaseResource', 'redisResource', 'storageBucket', 'apiBaseUrl', 'websocketUrl']) {
@@ -31,9 +30,7 @@ for (const field of ['resourceNamespace', 'databaseResource', 'redisResource', '
 const staging = manifests.find(({ value }) => value.name === 'staging')?.value;
 const production = manifests.find(({ value }) => value.name === 'production')?.value;
 if (staging && production) {
-  for (const field of ['resourceNamespace', 'databaseResource', 'redisResource', 'storageBucket', 'apiBaseUrl', 'websocketUrl']) {
-    if (staging[field] === production[field]) errors.push(`staging и production делят ${field}`);
-  }
+  for (const field of ['resourceNamespace', 'databaseResource', 'redisResource', 'storageBucket', 'apiBaseUrl', 'websocketUrl']) if (staging[field] === production[field]) errors.push(`staging и production делят ${field}`);
   if (staging.secretRefs.some((ref) => ref.includes('/production/'))) errors.push('staging ссылается на production secret');
   if (production.secretRefs.some((ref) => ref.includes('/staging/'))) errors.push('production ссылается на staging secret');
 }
