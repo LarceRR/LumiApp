@@ -3,7 +3,7 @@ import { create } from 'zustand';
 import { cameraMotion } from '@/design-system/motion/camera';
 import { surfaceObjectMotion } from '@/design-system/motion/surface-objects';
 import type { Cell } from '@/domains/surface-objects/domain/value-objects/Cell';
-import { inspectTargetYOffset } from '@/scene/camera/cameraConfig';
+import { inspectTargetYOffset, inspectTargetYOffsetFor } from '@/scene/camera/cameraConfig';
 import {
   type FocusTourState,
   focusTourFrame,
@@ -33,6 +33,25 @@ export type OrbitVelocity = {
 export type PanVelocity = {
   readonly x: number;
   readonly z: number;
+};
+
+/**
+ * What the UI actually measured before opening the details sheet.
+ *
+ * `centerLiftPx` is read at `measuredAtDistance`, so the camera rescales it to
+ * the distance it is about to hold.
+ */
+export type InspectFraming = {
+  readonly screenHeight: number;
+  /** Top edge of the sheet, px from the top of the display. */
+  readonly sheetTopPx: number;
+  readonly centerLiftPx: number;
+  readonly measuredAtDistance: number;
+};
+
+export type FocusTourOptions = {
+  readonly mode?: 'spawn' | 'inspect';
+  readonly framing?: InspectFraming;
 };
 
 type RecenterAnimation = {
@@ -70,7 +89,7 @@ type CameraState = {
   startFocusTour: (
     focusTarget: OrbitTarget,
     faceYaw: number,
-    options?: { readonly mode?: 'spawn' | 'inspect' },
+    options?: FocusTourOptions,
   ) => number;
   tickFocusTour: (deltaSeconds: number) => void;
   cancelFocusTour: () => void;
@@ -103,6 +122,32 @@ function createInitialOrbit(defaultDistance: number, mapCenter = DEFAULT_TARGET)
     distance: defaultDistance,
     target: mapCenter,
   };
+}
+
+/**
+ * How far to drop the look-at point so the object lands in the free band above
+ * the sheet. Falls back to the old fraction guess when nothing was measured
+ * yet — that only happens on the very first tap of a session.
+ */
+function inspectOffset(focusDistance: number, framing: InspectFraming | undefined): number {
+  if (framing === undefined || framing.screenHeight <= 0) {
+    return inspectTargetYOffset(
+      focusDistance,
+      surfaceObjectMotion.inspect.sheetScreenFraction,
+    );
+  }
+
+  const scale =
+    framing.measuredAtDistance > 0 && focusDistance > 0
+      ? framing.measuredAtDistance / focusDistance
+      : 1;
+
+  return inspectTargetYOffsetFor({
+    focusDistance,
+    screenHeight: framing.screenHeight,
+    sheetTopPx: framing.sheetTopPx,
+    objectCenterLiftPx: framing.centerLiftPx * scale,
+  });
 }
 
 export const useCameraStore = create<CameraState>()((set, get) => ({
@@ -304,9 +349,7 @@ export const useCameraStore = create<CameraState>()((set, get) => ({
     const target: OrbitTarget = inspect
       ? {
           x: focusTarget.x,
-          y:
-            focusTarget.y -
-            inspectTargetYOffset(focusDistance, inspectMotion.sheetScreenFraction),
+          y: focusTarget.y - inspectOffset(focusDistance, options?.framing),
           z: focusTarget.z,
         }
       : { ...focusTarget };
