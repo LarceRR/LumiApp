@@ -10,9 +10,9 @@ import { layout, spacing } from '../../spacing/spacing';
 import { IconButton } from '../IconButton/IconButton';
 import { Text } from '../Text/Text';
 
-export type ModalProps = { readonly visible: boolean; readonly onClose: () => void; readonly title: string; readonly children: ReactNode; readonly heightFraction?: number; readonly scrimOpacity?: number; readonly keyboardDismissible?: boolean };
+export type ModalProps = { readonly visible: boolean; readonly onClose: () => void; readonly title: string; readonly children: ReactNode; readonly heightFraction?: number; readonly scrimOpacity?: number; readonly keyboardDismissible?: boolean; readonly onSheetLayout?: (height: number) => void };
 
-function ModalComponent({ visible, onClose, title, children, heightFraction, scrimOpacity = 0.24, keyboardDismissible = false }: ModalProps): ReactElement {
+function ModalComponent({ visible, onClose, title, children, heightFraction, scrimOpacity = 0.24, keyboardDismissible = false, onSheetLayout }: ModalProps): ReactElement {
   const insets = useSafeAreaInsets();
   const theme = useThemeColors();
   const { height } = useWindowDimensions();
@@ -21,7 +21,7 @@ function ModalComponent({ visible, onClose, title, children, heightFraction, scr
     <RNModal animationType="none" transparent visible={visible} onRequestClose={onClose} statusBarTranslucent={Platform.OS === 'android'}>
       {scrim}
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} keyboardVerticalOffset={insets.top} style={styles.sheetWrap}>
-        <Animated.View entering={SlideInDown} exiting={SlideOutDown} style={[styles.sheet, { backgroundColor: theme.surfaceRaised, paddingBottom: insets.bottom + spacing.lg }, heightFraction === undefined ? null : { minHeight: height * heightFraction }]}>
+        <Animated.View entering={SlideInDown} exiting={SlideOutDown} onLayout={(event) => { onSheetLayout?.(event.nativeEvent.layout.height); }} style={[styles.sheet, { backgroundColor: theme.surfaceRaised, paddingBottom: insets.bottom + spacing.lg }, heightFraction === undefined ? null : { minHeight: height * heightFraction }]}>
           <View style={styles.header}><Text variant="sectionTitle" style={styles.title} numberOfLines={1}>{title}</Text><IconButton icon={icons.close} accessibilityLabel="Закрыть" onPress={onClose} /></View>
           {children}
           {keyboardDismissible ? <Pressable accessibilityRole="button" accessibilityLabel="Скрыть клавиатуру" onPress={() => Keyboard.dismiss()} style={styles.keyboardButton}><Text variant="caption">Скрыть клавиатуру</Text></Pressable> : null}
