@@ -15,11 +15,7 @@ import { ChangeStateDto, CreateSurfaceObjectDto, DeleteSurfaceObjectQueryDto, Ki
 @ApiTags('surface-objects')
 @Controller()
 export class SurfaceObjectsController {
-  constructor(
-    private readonly createHandler: CreateSurfaceObjectHandler,
-    private readonly changeStateHandler: ChangeSurfaceObjectStateHandler,
-    private readonly updateHandler: UpdateSurfaceObjectHandler,
-  ) {}
+  constructor(private readonly createHandler: CreateSurfaceObjectHandler, private readonly changeStateHandler: ChangeSurfaceObjectStateHandler, private readonly updateHandler: UpdateSurfaceObjectHandler) {}
 
   @Get('surface-object-kinds')
   @ApiOperation({ summary: 'Реестр типов объектов и их политики' })
@@ -33,7 +29,7 @@ export class SurfaceObjectsController {
   @ApiOperation({ summary: 'Поставить объект на поверхность', description: 'Клиент не передаёт координаты: ячейку выбирает SpawnNearExistingPolicy.' })
   @ApiOkResponse({ type: SurfaceObjectResponseDto })
   async create(@CurrentUser() user: AuthenticatedUser, @Headers('idempotency-key') idempotencyKey: string | undefined, @Param('spaceId') spaceId: string, @Body() body: CreateSurfaceObjectDto): Promise<SurfaceObjectDto> {
-    const object = await this.createHandler.execute({ spaceId: spaceId as SpaceId, createdByUserId: user.userId, kind: body.kind, subjectUserId: (body.subjectUserId as UserId | undefined) ?? null, metadata: body.metadata, idempotencyKey });
+    const object = await this.createHandler.execute({ spaceId: spaceId as SpaceId, createdByUserId: user.userId, kind: body.kind, subjectUserId: (body.subjectUserId as UserId | undefined) ?? null, metadata: body.metadata, idempotencyKey: idempotencyKey ?? null });
     return toSurfaceObjectDto(object);
   }
 
