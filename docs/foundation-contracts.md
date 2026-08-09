@@ -35,14 +35,14 @@ Retryable mutations accept an idempotency key at the HTTP boundary. The key is s
 2. Hash the validated body and route scope.
 3. Same `(scope, key)` and same hash returns the stored status and response.
 4. Same key with a different hash returns `409 CONFLICT` and performs no mutation.
-5. A new key executes the mutation and persists the response in the same database transaction.
-6. The unique `(scope, key)` constraint resolves concurrent first requests; the loser rereads the winner's record.
-7. Records expire by `expiresAt` and are removed by scheduled cleanup. The retention window is operation-specific and must be configured before production.
+5. A new key first creates a pending reservation under the unique `(scope, key)` constraint, then executes the mutation and marks the reservation completed with the canonical response.
+6. A concurrent caller that loses the reservation race does not execute the mutation and receives a stable conflict instead.
+7. Pending reservations expire after 24 hours for crash recovery; completed records also expire after 24 hours and are removed by scheduled cleanup.
 
 Required for registration, space creation, invitation creation/acceptance, moment mutations, exports, deletion requests and billing webhooks. GET/HEAD requests are already safe to retry.
 
-## Migration policy
+## Database migration policy
 
 Schema changes require a forward migration beside the schema change, a recovery note for incompatible changes, CI application against empty and representative existing databases, and verification that constraints/indexes exist after migration.
 
-Migration `0001_foundation_idempotency.sql` is additive and safe to roll forward. Cleanup of expired records is a separate operational task.
+Migrations `0001_foundation_idempotency.sql` and `0002_idempotency_reservations.sql` add the durable replay table and pending/completed reservation state. Both are additive/forward migrations; cleanup of expired records is a separate operational task.
