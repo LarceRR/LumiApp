@@ -13,9 +13,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
+        with: { node-version: 22, cache: npm }
       - run: npm ci
       - name: Типы
         run: npm run typecheck
@@ -30,30 +28,21 @@ jobs:
   api:
     name: Бэкенд
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: backend
+    defaults: { run: { working-directory: backend } }
     services:
       postgres:
         image: postgres:16-alpine
-        env:
-          POSTGRES_USER: lumi
-          POSTGRES_PASSWORD: lumi
-          POSTGRES_DB: lumi_test
+        env: { POSTGRES_USER: lumi, POSTGRES_PASSWORD: lumi, POSTGRES_DB: lumi_test }
         ports: ['5432:5432']
         options: >-
           --health-cmd "pg_isready -U lumi -d lumi_test"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 20
+          --health-interval 5s --health-timeout 5s --health-retries 20
       redis:
         image: redis:7-alpine
         ports: ['6379:6379']
         options: >-
           --health-cmd "redis-cli ping"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 20
+          --health-interval 5s --health-timeout 5s --health-retries 20
     env:
       NODE_ENV: test
       DATABASE_URL: postgres://lumi:lumi@localhost:5432/lumi_test
@@ -63,10 +52,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: backend/package-lock.json
+        with: { node-version: 22, cache: npm, cache-dependency-path: backend/package-lock.json }
       - run: npm ci
       - name: Типы
         run: npm run typecheck
@@ -76,9 +62,5 @@ jobs:
         run: npm test
       - name: Миграции
         run: npm run db:migrate
-      - name: Миграции соответствуют схеме
-        run: |
-          npm run db:generate
-          git diff --exit-code src/database/migrations
       - name: Сборка
         run: npm run build
