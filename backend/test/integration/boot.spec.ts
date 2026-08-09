@@ -5,10 +5,15 @@ describe.skipIf(process.env['RUN_INTEGRATION'] !== '1')('запуск прило
   let app: NestFastifyApplication;
 
   beforeAll(async () => {
-    const { createApp } = await import('@/bootstrap/createApp');
-    app = (await createApp()).app;
-    await app.init();
-    await app.getHttpAdapter().getInstance().ready();
+    try {
+      const { createApp } = await import('@/bootstrap/createApp');
+      app = (await createApp()).app;
+      await app.init();
+      await app.getHttpAdapter().getInstance().ready();
+    } catch (error) {
+      const message = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+      throw new Error(`Integration boot failed: ${message}`, { cause: error });
+    }
   }, 60_000);
 
   afterAll(async () => { await app?.close(); });
