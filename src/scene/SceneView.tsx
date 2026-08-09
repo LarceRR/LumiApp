@@ -1,7 +1,6 @@
 import { Canvas } from '@react-three/fiber/native';
 import { memo, type ReactElement, useEffect, useMemo, useRef } from 'react';
 import { useWindowDimensions } from 'react-native';
-
 import { useColorSchemeToken } from '@/design-system/colors/colors';
 import { selectSurfaceBackground, useSettingsStore } from '@/domains/settings/presentation/stores/settingsStore';
 import { useSurfaceObjectsStore } from '@/domains/surface-objects/presentation/stores/surfaceObjectsStore';
@@ -31,14 +30,7 @@ function SceneViewComponent({ bounds, logger, spaceKey = null }: SceneViewProps)
   const focusWorld = useMemo(() => cellToWorld(layout.focusCell), [layout.focusCell]);
   const defaultDistance = useMemo(() => defaultCameraDistance(height, defaultVisibleRows(height)), [height]);
   useInitialFraming(spaceKey);
-  useEffect(() => {
-    setDefaultDistance(defaultDistance);
-    setMapCenter({ x: focusWorld.x, y: 0, z: focusWorld.z }, layout.focusCell);
-    const space = spaceKey ?? '__default__';
-    const isEmpty = useSurfaceObjectsStore.getState().order.length === 0;
-    if (framedSpaceRef.current !== space && isEmpty) { framedSpaceRef.current = space; setTarget({ x: focusWorld.x, y: 0, z: focusWorld.z }); }
-    logger.debug('scene.surface.layout', { bounds, defaultDistance, focusCell: layout.focusCell, reframed: framedSpaceRef.current === space });
-  }, [bounds, defaultDistance, focusWorld.x, focusWorld.z, layout.focusCell, logger, setDefaultDistance, setMapCenter, setTarget, spaceKey]);
-  return <SurfaceOrbitControls><Canvas camera={{ fov: cameraConfig.fov, near: cameraConfig.near, far: cameraConfig.far, position: [0, 4, 12] }} dpr={quality.maxPixelRatio} style={{ flex: 1, backgroundColor: background }}><Scene /></Canvas></SurfaceOrbitControls>;
+  useEffect(() => { setDefaultDistance(defaultDistance); setMapCenter({ x: focusWorld.x, y: 0, z: focusWorld.z }, layout.focusCell); const space = spaceKey ?? '__default__'; const isEmpty = useSurfaceObjectsStore.getState().order.length === 0; if (framedSpaceRef.current !== space && isEmpty) { framedSpaceRef.current = space; setTarget({ x: focusWorld.x, y: 0, z: focusWorld.z }); } logger.debug('scene.surface.layout', { bounds, defaultDistance, focusCell: layout.focusCell, reframed: framedSpaceRef.current === space }); }, [bounds, defaultDistance, focusWorld.x, focusWorld.z, layout.focusCell, logger, setDefaultDistance, setMapCenter, setTarget, spaceKey]);
+  return <SurfaceOrbitControls><Canvas camera={{ fov: cameraConfig.fov, near: cameraConfig.near, far: cameraConfig.far, position: [0, 4, 12] }} style={{ flex: 1, backgroundColor: background }}><Scene /></Canvas></SurfaceOrbitControls>;
 }
 export const SceneView = memo(SceneViewComponent);
