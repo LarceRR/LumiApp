@@ -14,6 +14,7 @@ export function bloomMipWeights(radius: number, mips: number): readonly number[]
 }
 export function brightPassContribution(luma: number, threshold: number, softKnee: number = BLOOM_SOFT_KNEE): number {
   const knee = Math.max(threshold * softKnee, Number.EPSILON);
+  if (luma <= threshold - knee) return 0;
   const soft = Math.min(Math.max(luma - threshold + knee, 0), 2 * knee);
   const kneed = (soft * soft) / (4 * knee);
   return Math.max(kneed, luma - threshold);
