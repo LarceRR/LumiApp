@@ -9,6 +9,8 @@ import { assertJsonWithinLimits, assertMaxBytes, assertMaxCount, assertMaxLength
 
 const limits = loadLimits({});
 
+type MomentResult = { readonly ok: boolean };
+
 describe('отклонение по лимиту (#38)', () => {
   it('пропускает значение на границе', () => {
     expect(() => assertMaxLength('text', 'a'.repeat(limits.moments.textMaxLength), limits.moments.textMaxLength)).not.toThrow();
@@ -80,10 +82,10 @@ describe('отклонение по лимиту (#38)', () => {
    * до replay-обёртки, поэтому сохранённый ответ даже не запрашивается.
    */
   it('проверяет лимит до idempotent replay', async () => {
-    const replay = vi.fn(async <T>(operation: () => Promise<T>): Promise<T> => operation());
-    const mutation = vi.fn(async () => ({ ok: true }));
+    const mutation = vi.fn(async (): Promise<MomentResult> => ({ ok: true }));
+    const replay = vi.fn(async (operation: () => Promise<MomentResult>): Promise<MomentResult> => operation());
 
-    const createMoment = async (text: string): Promise<{ ok: boolean }> => {
+    const createMoment = async (text: string): Promise<MomentResult> => {
       assertMaxLength('text', text, limits.moments.textMaxLength);
 
       return replay(mutation);
@@ -95,5 +97,6 @@ describe('отклонение по лимиту (#38)', () => {
 
     await expect(createMoment('ok')).resolves.toEqual({ ok: true });
     expect(replay).toHaveBeenCalledTimes(1);
+    expect(mutation).toHaveBeenCalledTimes(1);
   });
 });
