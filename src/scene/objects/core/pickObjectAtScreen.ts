@@ -1,10 +1,6 @@
 import type { Cell } from '@/domains/surface-objects/domain/value-objects/Cell';
 import type { SurfaceObjectId } from '@/domains/surface-objects/domain/value-objects/SurfaceObjectId';
-import {
-  type OrbitFrame,
-  orbitScreenBasis,
-  screenGroundHit,
-} from '@/scene/camera/cameraConfig';
+import { type OrbitFrame, orbitScreenBasis, screenGroundHit } from '@/scene/camera/cameraConfig';
 import { cellToWorld } from '@/scene/surface/cellToWorld';
 import { SURFACE_CELL_WORLD_SIZE } from '@/scene/surface/constants';
 

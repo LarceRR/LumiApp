@@ -10,9 +10,7 @@ describe('fireVisualCoreExtents', () => {
     const extents = fireVisualCoreExtents(DEFAULT_FIRE_SETTINGS);
 
     expect(extents.height).toBeLessThan(flame.speedMax * flame.lifeTime * worldScale);
-    expect(extents.height).toBeGreaterThan(
-      flame.speedMin * flame.lifeTime * 0.6 * worldScale,
-    );
+    expect(extents.height).toBeGreaterThan(flame.speedMin * flame.lifeTime * 0.6 * worldScale);
   });
 
   it('ignores embers, which fly far above the flame', () => {

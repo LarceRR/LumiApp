@@ -356,8 +356,7 @@ export const useCameraStore = create<CameraState>()((set, get) => ({
     const home = {
       target: { x: orbit.target.x, y: 0, z: orbit.target.z },
       distance: inspectReturn?.distance ?? defaultDistance,
-      elevation:
-        inspectReturn?.elevation ?? elevationForDistance(defaultDistance, defaultDistance),
+      elevation: inspectReturn?.elevation ?? elevationForDistance(defaultDistance, defaultDistance),
     };
 
     if (

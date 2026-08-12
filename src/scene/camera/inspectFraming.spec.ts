@@ -23,10 +23,7 @@ const freeZone = resolveFreeZone({
   viewportHeight: viewport.height,
   safeAreaTop: 47,
 });
-const defaultDistance = defaultCameraDistance(
-  viewport.height,
-  defaultVisibleRows(viewport.height),
-);
+const defaultDistance = defaultCameraDistance(viewport.height, defaultVisibleRows(viewport.height));
 const azimuth = 0.7;
 
 function frame(elevation: number) {
