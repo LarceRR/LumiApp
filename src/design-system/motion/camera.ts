@@ -3,12 +3,12 @@ import { durations } from './durations';
 export const cameraMotion = {
   fov: 45,
   defaultElevationDeg: 20,
-  /** Zoom-in floor. Zoom-out reaches the top-down limit. */
   minElevationDeg: 20,
   maxElevationDeg: 90,
   zoomSensitivity: 1.35,
   minDistanceFactor: 0.25,
-  maxDistanceFactor: 2,
+  maxDistanceFactor: 3,
+  rotationGain: 1.15,
   orbitDecay: 2.8,
   orbitInertiaGain: 1,
   orbitMaxVelocity: 8,
