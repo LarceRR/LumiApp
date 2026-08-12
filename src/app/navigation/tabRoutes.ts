@@ -18,7 +18,7 @@ export type TabRouteConfig = {
 export const TAB_ROUTES: readonly TabRouteConfig[] = [
   {
     name: 'index',
-    title: 'Пространство',
+    title: 'Поле',
     glyphs: { active: icons.spaceActive, inactive: icons.space },
     nativeSymbols: { inactive: 'circle.grid.2x2', active: 'circle.grid.2x2.fill' },
   },

@@ -1,72 +1,227 @@
 name: CI
+
 on:
   push:
     branches: [master, main]
   pull_request:
+
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
+
 jobs:
   app:
     name: Мобильное приложение
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
-        with: { node-version: 22, cache: npm }
+        with:
+          node-version: 22
+          cache: npm
+
       - run: npm ci
+
       - name: Типы
         run: npm run typecheck
+
       - name: Линтер и формат
         run: npm run lint
+
       - name: Юнит-тесты
         run: npm test
+
       - name: Сборка бандла (Android)
         run: npx expo export --platform android --output-dir .expo/ci-android
+
       - name: Сборка бандла (iOS)
         run: npx expo export --platform ios --output-dir .expo/ci-ios
+
+  ios:
+    name: iOS Unsigned IPA
+    runs-on: macos-15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.3"
+          bundler-cache: false
+
+      - name: Установка зависимостей
+        run: npm ci
+
+      - name: Проверка Expo
+        run: |
+          npx expo --version
+          npm ls expo @expo/ui react-native expo-modules-core
+
+      - name: Expo Doctor
+        run: npx expo-doctor
+
+      - name: Генерация iOS native project
+        run: npx expo prebuild --platform ios --non-interactive
+
+      - name: Установка CocoaPods
+        working-directory: ios
+        run: pod install --repo-update
+
+      - name: Информация о Xcode
+        run: xcodebuild -version
+
+      - name: Список Xcode schemes
+        run: |
+          xcodebuild \
+            -workspace ios/LumiApp.xcworkspace \
+            -list
+
+      - name: Сборка unsigned iOS archive
+        run: |
+          set -euo pipefail
+
+          mkdir -p build
+
+          xcodebuild \
+            -workspace ios/LumiApp.xcworkspace \
+            -scheme LumiApp \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination "generic/platform=iOS" \
+            -archivePath "$GITHUB_WORKSPACE/build/LumiApp.xcarchive" \
+            archive \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY=""
+
+      - name: Проверка archive
+        run: |
+          set -euo pipefail
+
+          APP_PATH="build/LumiApp.xcarchive/Products/Applications/LumiApp.app"
+
+          if [ ! -d "$APP_PATH" ]; then
+            echo "::error::LumiApp.app не найден внутри archive."
+            echo ""
+            echo "Содержимое archive:"
+            find build/LumiApp.xcarchive -maxdepth 6 -print
+            exit 1
+          fi
+
+          echo "LumiApp.app найден:"
+          ls -lah "$APP_PATH"
+
+      - name: Создание unsigned IPA
+        run: |
+          set -euo pipefail
+
+          APP_PATH="build/LumiApp.xcarchive/Products/Applications/LumiApp.app"
+
+          rm -rf build/Payload
+          mkdir -p build/Payload
+
+          cp -R "$APP_PATH" build/Payload/LumiApp.app
+
+          cd build
+          zip -qry LumiApp-unsigned.ipa Payload
+
+          echo "IPA создан:"
+          ls -lh LumiApp-unsigned.ipa
+
+      - name: Загрузка unsigned IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: LumiApp-iOS-unsigned
+          path: build/LumiApp-unsigned.ipa
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Загрузка Xcode archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: LumiApp-iOS-xcarchive
+          path: build/LumiApp.xcarchive
+          if-no-files-found: error
+          retention-days: 3
+
   api:
     name: Бэкенд
     runs-on: ubuntu-latest
-    defaults: { run: { working-directory: backend } }
+
+    defaults:
+      run:
+        working-directory: backend
+
     services:
       postgres:
         image: postgres:16-alpine
-        env: { POSTGRES_USER: lumi, POSTGRES_PASSWORD: lumi, POSTGRES_DB: lumi_test }
-        ports: ['5432:5432']
+        env:
+          POSTGRES_USER: lumi
+          POSTGRES_PASSWORD: lumi
+          POSTGRES_DB: lumi_test
+        ports:
+          - "5432:5432"
         options: >-
           --health-cmd "pg_isready -U lumi -d lumi_test"
-          --health-interval 5s --health-timeout 5s --health-retries 20
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
       redis:
         image: redis:7-alpine
-        ports: ['6379:6379']
+        ports:
+          - "6379:6379"
         options: >-
           --health-cmd "redis-cli ping"
-          --health-interval 5s --health-timeout 5s --health-retries 20
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
     env:
       NODE_ENV: test
       DATABASE_URL: postgres://lumi:lumi@localhost:5432/lumi_test
       REDIS_URL: redis://localhost:6379
       JWT_ACCESS_SECRET: ci-access-secret-ci-access-secret
       JWT_REFRESH_SECRET: ci-refresh-secret-ci-refresh-secret
+
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
-        with: { node-version: 22, cache: npm, cache-dependency-path: backend/package-lock.json }
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+
       - run: npm ci
+
       - name: Типы
         run: npm run typecheck
+
       - name: Линтер и формат
         run: npm run lint
+
       - name: Юнит-тесты
         run: npm test
+
       - name: Миграции на пустой БД
         run: npm run db:migrate
+
       - name: Контракт схемы после первого применения
         run: npm run db:verify
+
       - name: Повторные миграции на существующей БД
         run: npm run db:migrate
+
       - name: Контракт схемы после повторного применения
         run: npm run db:verify
+
       - name: Сборка
         run: npm run build
