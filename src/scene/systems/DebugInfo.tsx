@@ -1,0 +1,23 @@
+import { memo, type ReactElement } from 'react';
+import { StyleSheet, View } from 'react-native';
+
+import { useSettingsStore } from '@/domains/settings/presentation/stores/settingsStore';
+import { useSurfaceObjectsStore } from '@/domains/surface-objects/presentation/stores/surfaceObjectsStore';
+import { useCameraStore } from '@/scene/stores/cameraStore';
+import { selectFps, useSceneStore } from '@/scene/stores/sceneStore';
+import { cameraMotion } from '@/design-system/motion/camera';
+import { Text } from '@/design-system/components/Text/Text';
+
+function DebugInfoComponent(): ReactElement | null {
+  const enabled = useSettingsStore((state) => state.showPerformanceOverlay);
+  const fps = useSceneStore(selectFps);
+  const orbit = useCameraStore((state) => state.orbit);
+  const defaultDistance = useCameraStore((state) => state.defaultDistance);
+  const objectCount = useSurfaceObjectsStore((state) => state.order.length);
+  if (!enabled) return null;
+  const zoom = orbit.distance / Math.max(defaultDistance, 0.001);
+  const angle = Math.round((orbit.elevation * 180) / Math.PI);
+  return <View pointerEvents="none" style={styles.root}><Text variant="caption">{`FPS ${fps} · объектов ${objectCount}`}</Text><Text variant="caption">{`zoom ${zoom.toFixed(2)}x · угол ${angle}°`}</Text><Text variant="caption">{`zoom ${cameraMotion.minDistanceFactor}…${cameraMotion.maxDistanceFactor}x · угол ${cameraMotion.minElevationDeg}…${cameraMotion.maxElevationDeg}°`}</Text><Text variant="caption">{`distance ${orbit.distance.toFixed(2)} · azimuth ${Math.round((orbit.azimuth * 180) / Math.PI)}°`}</Text></View>;
+}
+export const DebugInfo = memo(DebugInfoComponent);
+const styles = StyleSheet.create({ root: { position: 'absolute', top: 88, left: 16, gap: 2, padding: 8, borderRadius: 8, backgroundColor: 'rgba(20, 20, 20, 0.72)' } });
