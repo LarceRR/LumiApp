@@ -3,9 +3,9 @@ import { StyleSheet, View } from 'react-native';
 
 import { useThemeColors } from '@/design-system/colors/colors';
 import { Button } from '@/design-system/components/Button/Button';
+import { BottomSheet } from '@/design-system/components/BottomSheet/BottomSheet';
 import { Divider } from '@/design-system/components/Divider/Divider';
 import { ListRow } from '@/design-system/components/ListRow/ListRow';
-import { Modal } from '@/design-system/components/Modal/Modal';
 import { Text } from '@/design-system/components/Text/Text';
 import { icons, type IconName } from '@/design-system/icons/icons';
 import { spacing } from '@/design-system/spacing/spacing';
@@ -14,95 +14,28 @@ import { availableTransitions } from '@/domains/surface-objects/domain/value-obj
 import { useInspectStore } from '@/scene/stores/inspectStore';
 import { kindPresentation } from '@/scene/surface-objects/kindPresentation';
 
-export type ObjectDetailsSheetProps = {
-  readonly object: SurfaceObject | null;
-  readonly visible: boolean;
-  readonly icon: IconName;
-  readonly heightFraction?: number;
-  readonly onClose: () => void;
-  readonly onSoften: (object: SurfaceObject) => void;
-  readonly onToggleFavorite: (object: SurfaceObject) => void;
-  readonly onDelete: (object: SurfaceObject) => void;
-};
+export type ObjectDetailsSheetProps = { readonly object: SurfaceObject | null; readonly visible: boolean; readonly icon: IconName; readonly heightFraction?: number; readonly onClose: () => void; readonly onSoften: (object: SurfaceObject) => void; readonly onToggleFavorite: (object: SurfaceObject) => void; readonly onDelete: (object: SurfaceObject) => void };
+const STATE_LABELS = { Emerging: 'Появляется', Active: 'Активен', Fading: 'Смягчается', Settled: 'Осел' } as const;
 
-const STATE_LABELS = {
-  Emerging: 'Появляется',
-  Active: 'Активен',
-  Fading: 'Смягчается',
-  Settled: 'Осел',
-} as const;
+function noteOf(object: SurfaceObject): string | null { const note = object.metadata.note; return typeof note === 'string' && note.length > 0 ? note : null; }
 
-function noteOf(object: SurfaceObject): string | null {
-  const note = object.metadata.note;
-
-  return typeof note === 'string' && note.length > 0 ? note : null;
-}
-
-/**
- * The sheet reports its measured height, because the camera needs to know how
- * much room is actually left above it. A configured fraction is a guess; the
- * layout is the truth.
- */
-function ObjectDetailsSheetComponent({
-  object,
-  visible,
-  heightFraction,
-  onClose,
-  onSoften,
-  onToggleFavorite,
-  onDelete,
-}: ObjectDetailsSheetProps): ReactElement | null {
+function ObjectDetailsSheetComponent({ object, visible, heightFraction, onClose, onSoften, onToggleFavorite, onDelete }: ObjectDetailsSheetProps): ReactElement | null {
   const theme = useThemeColors();
   const setSheetHeight = useInspectStore((state) => state.setSheetHeight);
-
-  if (object === null) {
-    return null;
-  }
-
+  if (object === null) return null;
   const presentation = kindPresentation(object.kind);
   const note = noteOf(object);
   const canSoften = availableTransitions(object.state).includes('soften');
-  const modalHeight = heightFraction === undefined ? {} : { heightFraction };
-
   return (
-    <Modal
-      visible={visible}
-      onClose={onClose}
-      title={presentation.title}
-      {...modalHeight}
-      scrimOpacity={0}
-      onSheetLayout={setSheetHeight}
-    >
-      <View style={styles.meta}>
-        <Text variant="caption">
-          {STATE_LABELS[object.state]} · ячейка {object.cell.x}, {object.cell.y}
-        </Text>
-        {note === null ? null : <Text variant="body">{note}</Text>}
-      </View>
+    <BottomSheet visible={visible} onClose={onClose} heightFraction={heightFraction} onSheetLayout={setSheetHeight}>
+      <Text variant="sectionTitle">{presentation.title}</Text>
+      <View style={styles.meta}><Text variant="caption">{STATE_LABELS[object.state]} · ячейка {object.cell.x}, {object.cell.y}</Text>{note === null ? null : <Text variant="body">{note}</Text>}</View>
       <Divider />
-      <ListRow
-        title={object.favorite ? 'В избранном' : 'Добавить в избранное'}
-        icon={object.favorite ? icons.favorite : icons.favoriteOutline}
-        iconTint={object.favorite ? theme.accent : theme.textSecondary}
-        onPress={() => onToggleFavorite(object)}
-      />
-      {canSoften ? (
-        <ListRow
-          title="Смягчить"
-          subtitle="Объект начнёт затухать"
-          icon={icons.soften}
-          onPress={() => onSoften(object)}
-        />
-      ) : null}
-      <View style={styles.spacer} />
-      <Button label="Убрать с поверхности" variant="danger" onPress={() => onDelete(object)} />
-    </Modal>
+      <ListRow title={object.favorite ? 'В избранном' : 'Добавить в избранное'} icon={object.favorite ? icons.favorite : icons.favoriteOutline} iconTint={object.favorite ? theme.accent : theme.textSecondary} onPress={() => onToggleFavorite(object)} />
+      {canSoften ? <ListRow title="Смягчить" subtitle="Объект начнёт затухать" icon={icons.soften} onPress={() => onSoften(object)} /> : null}
+      <View style={styles.spacer} /><Button label="Убрать с поверхности" variant="danger" onPress={() => onDelete(object)} />
+    </BottomSheet>
   );
 }
-
 export const ObjectDetailsSheet = memo(ObjectDetailsSheetComponent);
-
-const styles = StyleSheet.create({
-  meta: { gap: spacing.sm },
-  spacer: { flex: 1, minHeight: spacing.md },
-});
+const styles = StyleSheet.create({ meta: { gap: spacing.sm }, spacer: { flex: 1, minHeight: spacing.md } });
