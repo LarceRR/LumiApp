@@ -93,7 +93,6 @@ export const BottomSheet = forwardRef<BottomSheetRef, BottomSheetProps>(
               alignItems: "stretch",
             }}
           >
-            <Text style={{ color: "red" }}>{sheetHeight}</Text>
             {children}
           </View>
         </KeyboardAvoidingView>
