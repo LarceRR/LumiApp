@@ -1,31 +1,32 @@
 import { memo, type ReactElement, useCallback, useEffect, useRef } from 'react';
 import { StyleSheet, useWindowDimensions, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+
 import { cameraMotion } from '@/design-system/motion/camera';
-import { surfaceObjectMotion } from '@/design-system/motion/surface-objects';
-import { knownKinds } from '@/domains/surface-objects/domain/value-objects/SurfaceObjectKind';
 import { useSurfaceObjectsStore } from '@/domains/surface-objects/presentation/stores/surfaceObjectsStore';
 import { panDeltaFromScreen, worldUnitsPerPixel } from '@/scene/camera/cameraConfig';
-import { getModelScreenBounds } from '@/scene/objects/core/modelScreenBounds';
-import { objectYawRadians } from '@/scene/objects/core/objectYaw';
+import { useInspectFocus } from '@/scene/camera/useInspectFocus';
 import { groundHitFromScreen, pickNearestObject } from '@/scene/objects/core/pickObjectAtScreen';
 import { useCameraStore } from '@/scene/stores/cameraStore';
 import { useInspectStore } from '@/scene/stores/inspectStore';
 import { useSceneStore } from '@/scene/stores/sceneStore';
-import { cellToWorld } from '@/scene/surface/cellToWorld';
+
 export type SurfaceOrbitControlsProps = { readonly children: ReactElement };
 type Sample = { readonly x: number; readonly z: number; readonly at: number };
 const WINDOW_MS = 100;
+
 function velocity(samples: readonly Sample[]): { x: number; z: number } {
   const first = samples[0];
   const last = samples[samples.length - 1];
   if (!first || !last || last.at <= first.at) return { x: 0, z: 0 };
   const seconds = (last.at - first.at) / 1000;
+
   return {
     x: (samples.reduce((sum, item) => sum + item.x, 0) / seconds) * cameraMotion.panInertiaGain,
     z: (samples.reduce((sum, item) => sum + item.z, 0) / seconds) * cameraMotion.panInertiaGain,
   };
 }
+
 function SurfaceOrbitControlsComponent({ children }: SurfaceOrbitControlsProps): ReactElement {
   const { width, height } = useWindowDimensions();
   const panBy = useCameraStore((state) => state.panBy);
@@ -35,20 +36,25 @@ function SurfaceOrbitControlsComponent({ children }: SurfaceOrbitControlsProps):
   const setPanVelocity = useCameraStore((state) => state.setPanVelocity);
   const stopAllVelocity = useCameraStore((state) => state.stopAllVelocity);
   const cancelRecenter = useCameraStore((state) => state.cancelRecenter);
-  const startFocusTour = useCameraStore((state) => state.startFocusTour);
   const setInteracting = useSceneStore((state) => state.setInteracting);
+  const focusObject = useInspectFocus();
   const samples = useRef<Sample[]>([]);
   const lastScale = useRef(1);
   const rotationSamples = useRef<Sample[]>([]);
+
   const begin = useCallback(() => {
     cancelRecenter();
     stopAllVelocity();
     setInteracting(true);
   }, [cancelRecenter, setInteracting, stopAllVelocity]);
+
   const end = useCallback(() => setInteracting(false), [setInteracting]);
+
   const onPan = useCallback(
     (dx: number, dy: number, x: number, y: number) => {
       const orbit = useCameraStore.getState().orbit;
+      // Ground hits under both finger positions: the surface then travels exactly
+      // with the finger at any angle, top-down included.
       const prev = groundHitFromScreen(x - dx, y - dy, width, height, orbit);
       const next = groundHitFromScreen(x, y, width, height, orbit);
       const delta =
@@ -70,6 +76,7 @@ function SurfaceOrbitControlsComponent({ children }: SurfaceOrbitControlsProps):
     },
     [height, panBy, width],
   );
+
   const finishPan = useCallback(
     (vx = 0, vy = 0) => {
       const orbit = useCameraStore.getState().orbit;
@@ -90,6 +97,7 @@ function SurfaceOrbitControlsComponent({ children }: SurfaceOrbitControlsProps):
     },
     [end, height, setPanVelocity],
   );
+
   const onPinch = useCallback(
     (scale: number) => {
       if (lastScale.current > 0) zoomByFactor(lastScale.current / scale);
@@ -97,6 +105,7 @@ function SurfaceOrbitControlsComponent({ children }: SurfaceOrbitControlsProps):
     },
     [zoomByFactor],
   );
+
   const onRotation = useCallback(
     (rotationChange: number) => {
       const delta = rotationChange * cameraMotion.rotationGain;
@@ -109,6 +118,7 @@ function SurfaceOrbitControlsComponent({ children }: SurfaceOrbitControlsProps):
     },
     [orbitBy],
   );
+
   const finishRotation = useCallback(() => {
     const v = velocity(rotationSamples.current);
     setOrbitVelocity({
@@ -121,66 +131,40 @@ function SurfaceOrbitControlsComponent({ children }: SurfaceOrbitControlsProps):
     rotationSamples.current = [];
     end();
   }, [end, setOrbitVelocity]);
-  const focusLastFire = useCallback(() => {
-    const { selectedId, byId } = useSurfaceObjectsStore.getState();
-    const selected = selectedId ? byId[selectedId] : undefined;
-    const fire =
-      selected?.kind === knownKinds.fire
-        ? selected
-        : Object.values(byId).find((item) => item.kind === knownKinds.fire);
-    if (!fire) return;
-    const inspect = useInspectStore.getState();
-    const bounds = getModelScreenBounds(fire.id, { width, height });
-    const sheetHeight =
-      inspect.sheetHeight ?? height * surfaceObjectMotion.inspect.sheetScreenFraction;
-    startFocusTour(cellToWorld(fire.cell), objectYawRadians(fire.id), {
-      mode: 'inspect',
-      framing: bounds
-        ? {
-            screenHeight: height,
-            sheetTopPx: Math.max(0, height - sheetHeight),
-            centerLiftPx: bounds.centerLiftPx,
-            measuredAtDistance: useCameraStore.getState().orbit.distance,
-          }
-        : undefined,
-    });
-  }, [height, startFocusTour, width]);
+
+  /** Double tap reframes whatever is currently in focus. */
+  const refocus = useCallback(() => {
+    const { selectedId, order } = useSurfaceObjectsStore.getState();
+    const id = selectedId ?? order[order.length - 1] ?? null;
+    if (id !== null) focusObject(id);
+  }, [focusObject]);
+
   const onTap = useCallback(
     (x: number, y: number) => {
       const camera = useCameraStore.getState();
-      if (camera.focusTour) return;
+      if (camera.focusTour !== null) return;
       const hit = groundHitFromScreen(x, y, width, height, camera.orbit);
       if (!hit) return;
-      const { order, byId, select } = useSurfaceObjectsStore.getState();
-      const fires = order.flatMap((id) => {
+      const { order, byId } = useSurfaceObjectsStore.getState();
+      // Every kind is pickable, not just fire — the catalog will grow.
+      const targets = order.flatMap((id) => {
         const object = byId[id];
-        return object?.kind === knownKinds.fire ? [{ id: object.id, cell: object.cell }] : [];
+
+        return object === undefined ? [] : [{ id: object.id, cell: object.cell }];
       });
-      const picked = pickNearestObject(hit, fires);
+      const picked = pickNearestObject(hit, targets);
+
       if (!picked) {
         useInspectStore.getState().clearHitbox();
+
         return;
       }
-      select(picked.id);
-      const bounds = getModelScreenBounds(picked.id, { width, height });
-      useInspectStore.getState().setHitbox(bounds);
-      const sheet =
-        useInspectStore.getState().sheetHeight ??
-        height * surfaceObjectMotion.inspect.sheetScreenFraction;
-      startFocusTour(cellToWorld(picked.cell), objectYawRadians(picked.id), {
-        mode: 'inspect',
-        framing: bounds
-          ? {
-              screenHeight: height,
-              sheetTopPx: Math.max(0, height - sheet),
-              centerLiftPx: bounds.centerLiftPx,
-              measuredAtDistance: camera.orbit.distance,
-            }
-          : undefined,
-      });
+
+      focusObject(picked.id);
     },
-    [height, startFocusTour, width],
+    [focusObject, height, width],
   );
+
   useEffect(
     () => () => {
       setInteracting(false);
@@ -188,6 +172,7 @@ function SurfaceOrbitControlsComponent({ children }: SurfaceOrbitControlsProps):
     },
     [setInteracting, stopAllVelocity],
   );
+
   const pan = Gesture.Pan()
     .runOnJS(true)
     .minPointers(1)
@@ -217,7 +202,7 @@ function SurfaceOrbitControlsComponent({ children }: SurfaceOrbitControlsProps):
     .numberOfTaps(2)
     .maxDuration(250)
     .maxDistance(12)
-    .onEnd(focusLastFire);
+    .onEnd(refocus);
   const singleTap = Gesture.Tap()
     .runOnJS(true)
     .numberOfTaps(1)
@@ -229,6 +214,7 @@ function SurfaceOrbitControlsComponent({ children }: SurfaceOrbitControlsProps):
     pan,
     Gesture.Simultaneous(pinch, rotation),
   );
+
   return (
     <GestureDetector gesture={gesture}>
       <View style={styles.root} collapsable={false}>
@@ -237,5 +223,6 @@ function SurfaceOrbitControlsComponent({ children }: SurfaceOrbitControlsProps):
     </GestureDetector>
   );
 }
+
 export const SurfaceOrbitControls = memo(SurfaceOrbitControlsComponent);
 const styles = StyleSheet.create({ root: { flex: 1 } });
