@@ -16,7 +16,14 @@ import { SurfaceObjectsController } from './presentation/controllers/surfaceObje
 @Module({
   imports: [DrizzleModule, forwardRef(() => SpacesModule), forwardRef(() => SurfacesModule)],
   controllers: [SurfaceObjectsController],
-  providers: [{ provide: SURFACE_OBJECT_REPOSITORY, useClass: DrizzleSurfaceObjectRepository }, IdempotencyService, CreateSurfaceObjectHandler, ChangeSurfaceObjectStateHandler, UpdateSurfaceObjectHandler, SurfaceLifecycleProcessor],
+  providers: [
+    { provide: SURFACE_OBJECT_REPOSITORY, useClass: DrizzleSurfaceObjectRepository },
+    IdempotencyService,
+    CreateSurfaceObjectHandler,
+    ChangeSurfaceObjectStateHandler,
+    UpdateSurfaceObjectHandler,
+    SurfaceLifecycleProcessor,
+  ],
   exports: [SURFACE_OBJECT_REPOSITORY],
 })
 export class SurfaceObjectsModule {}

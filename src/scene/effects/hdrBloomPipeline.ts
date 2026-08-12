@@ -85,8 +85,9 @@ const blurFragment = /* glsl */ `
 `;
 
 function compositeFragment(mips: number): string {
-  const samplers = Array.from({ length: mips }, (_, index) =>
-    `  uniform sampler2D uMip${index};\n  uniform float uWeight${index};`,
+  const samplers = Array.from(
+    { length: mips },
+    (_, index) => `  uniform sampler2D uMip${index};\n  uniform float uWeight${index};`,
   ).join('\n');
   const accumulate = Array.from(
     { length: mips },
@@ -230,7 +231,11 @@ export class HdrBloomPipeline {
       depthWrite: false,
     });
     this.blurMaterial = new ShaderMaterial({
-      uniforms: { uTexture: this.blurTexture, uTexelSize: this.blurTexel, uDirection: this.blurDirection },
+      uniforms: {
+        uTexture: this.blurTexture,
+        uTexelSize: this.blurTexel,
+        uDirection: this.blurDirection,
+      },
       vertexShader: fullscreenVertex,
       fragmentShader: blurFragment,
       blending: NoBlending,
@@ -288,7 +293,11 @@ export class HdrBloomPipeline {
     this.compositeMaterial.dispose();
   }
 
-  private renderBloom(renderer: WebGLRenderer, sceneTarget: WebGLRenderTarget, input: BloomInput): void {
+  private renderBloom(
+    renderer: WebGLRenderer,
+    sceneTarget: WebGLRenderTarget,
+    input: BloomInput,
+  ): void {
     const bright = this.brightTarget;
     if (bright === null) return;
     this.brightTexture.value = sceneTarget.texture;
@@ -313,15 +322,24 @@ export class HdrBloomPipeline {
     }
   }
 
-  private draw(renderer: WebGLRenderer, material: ShaderMaterial, target: WebGLRenderTarget | null): void {
+  private draw(
+    renderer: WebGLRenderer,
+    material: ShaderMaterial,
+    target: WebGLRenderTarget | null,
+  ): void {
     this.quad.material = material;
     renderer.setRenderTarget(target);
     renderer.render(this.quadScene, this.quadCamera);
   }
 
-  private ensureTargets(renderer: WebGLRenderer, width: number, height: number): WebGLRenderTarget | null {
+  private ensureTargets(
+    renderer: WebGLRenderer,
+    width: number,
+    height: number,
+  ): WebGLRenderTarget | null {
     if (this.unsupported) return null;
-    if (this.sceneTarget !== null && this.width === width && this.height === height) return this.sceneTarget;
+    if (this.sceneTarget !== null && this.width === width && this.height === height)
+      return this.sceneTarget;
     this.releaseTargets();
     this.width = width;
     this.height = height;
@@ -348,7 +366,11 @@ export class HdrBloomPipeline {
     return this.sceneTarget;
   }
 
-  private createSceneTarget(renderer: WebGLRenderer, width: number, height: number): WebGLRenderTarget | null {
+  private createSceneTarget(
+    renderer: WebGLRenderer,
+    width: number,
+    height: number,
+  ): WebGLRenderTarget | null {
     const wanted = this.textureType ?? preferredType(renderer);
     const types = wanted === HalfFloatType ? [HalfFloatType, UnsignedByteType] : [UnsignedByteType];
     for (const type of types) {

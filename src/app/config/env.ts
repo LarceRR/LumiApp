@@ -42,7 +42,10 @@ function getExpoHost(): string | null {
     return null;
   }
 
-  const normalized = hostUri.replace(/^https?:\/\//, '').replace(/^exp:\/\//, '').replace(/\/.*$/, '');
+  const normalized = hostUri
+    .replace(/^https?:\/\//, '')
+    .replace(/^exp:\/\//, '')
+    .replace(/\/.*$/, '');
   const delimiter = normalized.lastIndexOf(':');
 
   if (delimiter <= 0) {

@@ -5,7 +5,13 @@ import { ValidationError } from '@/shared/errors';
 
 import { loadLimits } from '@/config/limits';
 
-import { assertJsonWithinLimits, assertMaxBytes, assertMaxCount, assertMaxLength, utf8ByteLength } from './limits.guard';
+import {
+  assertJsonWithinLimits,
+  assertMaxBytes,
+  assertMaxCount,
+  assertMaxLength,
+  utf8ByteLength,
+} from './limits.guard';
 
 const limits = loadLimits({});
 
@@ -21,12 +27,22 @@ function objectWithKeys(count: number): Record<string, number> {
 
 describe('отклонение по лимиту (#38)', () => {
   it('пропускает значение на границе', () => {
-    expect(() => assertMaxLength('text', 'a'.repeat(limits.moments.textMaxLength), limits.moments.textMaxLength)).not.toThrow();
+    expect(() =>
+      assertMaxLength(
+        'text',
+        'a'.repeat(limits.moments.textMaxLength),
+        limits.moments.textMaxLength,
+      ),
+    ).not.toThrow();
   });
 
   it('отклоняет превышение стабильным кодом VALIDATION_FAILED', () => {
     try {
-      assertMaxLength('text', 'a'.repeat(limits.moments.textMaxLength + 1), limits.moments.textMaxLength);
+      assertMaxLength(
+        'text',
+        'a'.repeat(limits.moments.textMaxLength + 1),
+        limits.moments.textMaxLength,
+      );
       expect.unreachable('лимит должен отклонить значение');
     } catch (error) {
       expect(error).toBeInstanceOf(ValidationError);
@@ -66,8 +82,12 @@ describe('отклонение по лимиту (#38)', () => {
     };
 
     expect(() => assertJsonWithinLimits('metadata', { mood: 'ok' }, jsonLimits)).not.toThrow();
-    expect(() => assertJsonWithinLimits('metadata', { blob: 'x'.repeat(jsonLimits.maxBytes) }, jsonLimits)).toThrow(ValidationError);
-    expect(() => assertJsonWithinLimits('metadata', objectWithKeys(jsonLimits.maxKeys + 1), jsonLimits)).toThrow(ValidationError);
+    expect(() =>
+      assertJsonWithinLimits('metadata', { blob: 'x'.repeat(jsonLimits.maxBytes) }, jsonLimits),
+    ).toThrow(ValidationError);
+    expect(() =>
+      assertJsonWithinLimits('metadata', objectWithKeys(jsonLimits.maxKeys + 1), jsonLimits),
+    ).toThrow(ValidationError);
 
     let deep: unknown = 'leaf';
     for (let level = 0; level < jsonLimits.maxDepth + 1; level += 1) deep = { nested: deep };
@@ -76,7 +96,9 @@ describe('отклонение по лимиту (#38)', () => {
   });
 
   it('отклоняет превышение количества', () => {
-    expect(() => assertMaxCount('members', limits.spaces.membersPerSpace + 1, limits.spaces.membersPerSpace)).toThrow(ValidationError);
+    expect(() =>
+      assertMaxCount('members', limits.spaces.membersPerSpace + 1, limits.spaces.membersPerSpace),
+    ).toThrow(ValidationError);
   });
 
   /**
@@ -85,7 +107,9 @@ describe('отклонение по лимиту (#38)', () => {
    */
   it('проверяет лимит до idempotent replay', async () => {
     const mutation = vi.fn(async (): Promise<MomentResult> => ({ ok: true }));
-    const replay = vi.fn(async (operation: () => Promise<MomentResult>): Promise<MomentResult> => operation());
+    const replay = vi.fn(
+      async (operation: () => Promise<MomentResult>): Promise<MomentResult> => operation(),
+    );
 
     const createMoment = async (text: string): Promise<MomentResult> => {
       assertMaxLength('text', text, limits.moments.textMaxLength);
@@ -93,7 +117,9 @@ describe('отклонение по лимиту (#38)', () => {
       return replay(mutation);
     };
 
-    await expect(createMoment('a'.repeat(limits.moments.textMaxLength + 1))).rejects.toBeInstanceOf(ValidationError);
+    await expect(createMoment('a'.repeat(limits.moments.textMaxLength + 1))).rejects.toBeInstanceOf(
+      ValidationError,
+    );
     expect(replay).not.toHaveBeenCalled();
     expect(mutation).not.toHaveBeenCalled();
 

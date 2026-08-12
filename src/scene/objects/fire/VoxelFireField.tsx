@@ -138,9 +138,7 @@ function VoxelFireFieldComponent(): ReactElement {
       viewDepth: (world) => {
         const position = { x: world.x, y: 0, z: world.z };
 
-        return isLostInFog(objectFogFactor(position, orbit))
-          ? null
-          : viewDepth(position, orbit);
+        return isLostInFog(objectFogFactor(position, orbit)) ? null : viewDepth(position, orbit);
       },
     });
 
@@ -185,12 +183,7 @@ function VoxelFireFieldComponent(): ReactElement {
       const target = objectOpacityTarget(isFocused, dimOthers) * (1 - fog);
       const targetYaw = item.id === selectedId ? viewYaw : restYaw;
 
-      emitter.opacity = dampOverMs(
-        emitter.opacity,
-        target,
-        surfaceObjectMotion.dim.fadeMs,
-        delta,
-      );
+      emitter.opacity = dampOverMs(emitter.opacity, target, surfaceObjectMotion.dim.fadeMs, delta);
 
       // Damped along the short arc: the turn lasts about as long as the zoom, and
       // interrupting it mid-way (tapping another fire) never spins the long way

@@ -1,11 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { memo, type ReactElement, useEffect } from 'react';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
-} from 'react-native-reanimated';
+import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 
 import { useThemeColors } from '../../colors/themeStore';
 import { icons } from '../../icons/icons';

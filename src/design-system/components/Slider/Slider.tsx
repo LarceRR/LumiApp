@@ -12,7 +12,14 @@ export type SliderProps = {
   readonly accessibilityLabel: string;
 };
 
-function SliderComponent({ value, min, max, step, onChange, accessibilityLabel }: SliderProps): ReactElement {
+function SliderComponent({
+  value,
+  min,
+  max,
+  step,
+  onChange,
+  accessibilityLabel,
+}: SliderProps): ReactElement {
   return (
     <RNSlider
       accessibilityLabel={accessibilityLabel}

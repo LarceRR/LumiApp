@@ -26,10 +26,38 @@ export function SignInScreen(): ReactElement {
 
   return (
     <Screen title="Вход" subtitle="Пространство останется на месте" reserveTabBar={false}>
-      <AuthForm fields={[{ id: 'email', label: 'Почта', value: email, onChange: setEmail, placeholder: 'you@example.com', autoComplete: 'email', keyboardType: 'email-address' }, { id: 'password', label: 'Пароль', value: password, onChange: setPassword, placeholder: 'Минимум 8 символов', secure: true, autoComplete: 'password' }]} />
-      <Button label="Войти" disabled={!canSubmit} loading={auth.isPending} onPress={() => auth.signIn({ email, password })} />
+      <AuthForm
+        fields={[
+          {
+            id: 'email',
+            label: 'Почта',
+            value: email,
+            onChange: setEmail,
+            placeholder: 'you@example.com',
+            autoComplete: 'email',
+            keyboardType: 'email-address',
+          },
+          {
+            id: 'password',
+            label: 'Пароль',
+            value: password,
+            onChange: setPassword,
+            placeholder: 'Минимум 8 символов',
+            secure: true,
+            autoComplete: 'password',
+          },
+        ]}
+      />
+      <Button
+        label="Войти"
+        disabled={!canSubmit}
+        loading={auth.isPending}
+        onPress={() => auth.signIn({ email, password })}
+      />
       <Button label="Создать аккаунт" variant="ghost" onPress={() => router.replace('/sign-up')} />
-      <Text variant="caption" align="center">Входя, вы соглашаетесь с условиями использования.</Text>
+      <Text variant="caption" align="center">
+        Входя, вы соглашаетесь с условиями использования.
+      </Text>
     </Screen>
   );
 }

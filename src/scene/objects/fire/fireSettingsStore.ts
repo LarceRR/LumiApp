@@ -17,5 +17,9 @@ export const useFireSettingsStore = create<FireSettingsState>()((set) => ({
   reset: () => set({ settings: DEFAULT_FIRE_SETTINGS }),
 }));
 
-export function fireSettings(): FireSettings { return useFireSettingsStore.getState().settings; }
-export function useFireSettingValue(path: string): SettingsValue | undefined { return useFireSettingsStore((state) => readPath(state.settings, path)); }
+export function fireSettings(): FireSettings {
+  return useFireSettingsStore.getState().settings;
+}
+export function useFireSettingValue(path: string): SettingsValue | undefined {
+  return useFireSettingsStore((state) => readPath(state.settings, path));
+}

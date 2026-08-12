@@ -57,4 +57,6 @@ export function NativeTabsLayout(): ReactElement {
   );
 }
 
-const styles = StyleSheet.create({ placeholder: { flex: 1, alignItems: 'center', justifyContent: 'center' } });
+const styles = StyleSheet.create({
+  placeholder: { flex: 1, alignItems: 'center', justifyContent: 'center' },
+});

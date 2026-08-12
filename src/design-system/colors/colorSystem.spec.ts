@@ -61,12 +61,12 @@ describe('themes', () => {
   });
 
   it('keeps the surface grid close to its own background', () => {
-    expect(Math.abs(luminance(lightScene.surfaceGrid) - luminance(lightScene.background))).toBeLessThan(
-      0.06,
-    );
-    expect(Math.abs(luminance(darkScene.surfaceGrid) - luminance(darkScene.background))).toBeLessThan(
-      0.06,
-    );
+    expect(
+      Math.abs(luminance(lightScene.surfaceGrid) - luminance(lightScene.background)),
+    ).toBeLessThan(0.06);
+    expect(
+      Math.abs(luminance(darkScene.surfaceGrid) - luminance(darkScene.background)),
+    ).toBeLessThan(0.06);
   });
 
   it('only ships parseable hex in the scene palettes', () => {

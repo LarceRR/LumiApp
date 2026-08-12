@@ -6,4 +6,16 @@ import { SceneLighting } from '@/scene/lighting/SceneLighting';
 import { VoxelFireField } from '@/scene/objects';
 import { SurfaceGrid } from '@/scene/surface/SurfaceGrid';
 import { FpsMeter } from '@/scene/systems/FpsMeter';
-export function Scene(): ReactElement { return <><SceneAtmosphere /><CameraController /><SceneLighting /><SurfaceGrid /><VoxelFireField /><FireBloom /><FpsMeter /></>; }
+export function Scene(): ReactElement {
+  return (
+    <>
+      <SceneAtmosphere />
+      <CameraController />
+      <SceneLighting />
+      <SurfaceGrid />
+      <VoxelFireField />
+      <FireBloom />
+      <FpsMeter />
+    </>
+  );
+}

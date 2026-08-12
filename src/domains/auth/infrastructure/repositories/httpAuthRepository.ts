@@ -7,7 +7,7 @@ import { toAuthSession, toUserProfile } from '../mappers/authMapper';
 export function createHttpAuthRepository(http: HttpClient): AuthRepository {
   return {
     async signIn(credentials) {
-      console.log(credentials)
+      console.log(credentials);
       const body =
         credentials.type === 'email'
           ? { type: 'email', email: credentials.email, password: credentials.password }
@@ -17,7 +17,7 @@ export function createHttpAuthRepository(http: HttpClient): AuthRepository {
     },
 
     async signUp(credentials) {
-      console.log(credentials)
+      console.log(credentials);
       return toAuthSession(
         await http.post<AuthSessionDto>('auth/sign-up', {
           email: credentials.email,

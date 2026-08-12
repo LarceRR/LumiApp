@@ -43,7 +43,11 @@ export function useAuthActions(): AuthActions {
         passwordLength: input.password.length,
       });
 
-      return useCases.signIn({ type: 'email', email: toEmail(input.email), password: input.password });
+      return useCases.signIn({
+        type: 'email',
+        email: toEmail(input.email),
+        password: input.password,
+      });
     },
     onSuccess: (session) => {
       sessions.adopt(session);

@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { fogFactor, isLostInFog, objectFogFactor, orbitFogBounds, viewDepth } from './fogVisibility';
+import {
+  fogFactor,
+  isLostInFog,
+  objectFogFactor,
+  orbitFogBounds,
+  viewDepth,
+} from './fogVisibility';
 
 const orbit = {
   azimuth: 0,

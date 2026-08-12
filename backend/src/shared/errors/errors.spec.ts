@@ -38,7 +38,9 @@ describe('stable API error contract', () => {
   });
 
   it('keeps validation violations machine-readable', () => {
-    expect(new ValidationError('invalid', [{ path: 'title', message: 'required' }]).toPublicJson()).toEqual({
+    expect(
+      new ValidationError('invalid', [{ path: 'title', message: 'required' }]).toPublicJson(),
+    ).toEqual({
       kind: 'validation',
       code: ErrorCode.VALIDATION_FAILED,
       message: 'invalid',

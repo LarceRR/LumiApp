@@ -1,7 +1,10 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 
-import { USER_REPOSITORY, type UserRepository } from '@/modules/users/domain/repositories/UserRepository';
+import {
+  USER_REPOSITORY,
+  type UserRepository,
+} from '@/modules/users/domain/repositories/UserRepository';
 import type { UserId } from '@/modules/users/domain/value-objects/UserId';
 import { IdempotencyService } from '@/shared/idempotency/idempotency.service';
 import { AuthorizationError, NotFoundError } from '@/shared/errors';
@@ -39,15 +42,32 @@ export class RespondToInvitationHandler {
 
   private async respond(command: RespondToInvitationCommand): Promise<Invitation> {
     const invitation = await this.spaces.findInvitationById(command.invitationId);
-    if (invitation === null) throw new NotFoundError('Приглашение не найдено', { invitationId: command.invitationId });
+    if (invitation === null)
+      throw new NotFoundError('Приглашение не найдено', { invitationId: command.invitationId });
     await this.assertAddressedTo(invitation, command.userId);
     if (!command.accept) return this.spaces.setInvitationStatus(invitation.id, 'Rejected');
     const space = await this.spaces.findById(invitation.spaceId);
-    if (space === null) throw new NotFoundError('Пространство не найдено', { spaceId: invitation.spaceId });
-    await this.spaces.addMember(space.id, { userId: command.userId, role: 'Member', permissions: invitation.permissions, joinedAt: new Date() }, space.version);
+    if (space === null)
+      throw new NotFoundError('Пространство не найдено', { spaceId: invitation.spaceId });
+    await this.spaces.addMember(
+      space.id,
+      {
+        userId: command.userId,
+        role: 'Member',
+        permissions: invitation.permissions,
+        joinedAt: new Date(),
+      },
+      space.version,
+    );
     const accepted = await this.spaces.setInvitationStatus(invitation.id, 'Accepted');
-    await this.access.invalidate(space.id, [command.userId, ...space.members.map((member) => member.userId)]);
-    this.events.emit(domainEventNames.spaceMemberJoined, { spaceId: space.id, userId: command.userId } satisfies SpaceMemberJoinedEvent);
+    await this.access.invalidate(space.id, [
+      command.userId,
+      ...space.members.map((member) => member.userId),
+    ]);
+    this.events.emit(domainEventNames.spaceMemberJoined, {
+      spaceId: space.id,
+      userId: command.userId,
+    } satisfies SpaceMemberJoinedEvent);
     return accepted;
   }
 
@@ -55,6 +75,8 @@ export class RespondToInvitationHandler {
     if (invitation.inviteeUserId === userId) return;
     const user = await this.users.findById(userId);
     if (user !== null && user.email === invitation.inviteeEmail) return;
-    throw new AuthorizationError('Это приглашение адресовано другому пользователю', { invitationId: invitation.id });
+    throw new AuthorizationError('Это приглашение адресовано другому пользователю', {
+      invitationId: invitation.id,
+    });
   }
 }

@@ -34,9 +34,16 @@ describe('возрастная и территориальная политик�
   });
 
   it('отказывает за день до дня рождения', () => {
-    const decision = decideEligibility({ birthDate: '2010-08-09', territory: 'RU' }, utc('2026-08-08'));
+    const decision = decideEligibility(
+      { birthDate: '2010-08-09', territory: 'RU' },
+      utc('2026-08-08'),
+    );
 
-    expect(decision).toEqual({ allowed: false, policyVersion: policy.version, reason: 'below_minimum_age' });
+    expect(decision).toEqual({
+      allowed: false,
+      policyVersion: policy.version,
+      reason: 'below_minimum_age',
+    });
   });
 
   it('корректно считает возраст для 29 февраля', () => {
@@ -63,11 +70,18 @@ describe('возрастная и территориальная политик�
   it('не требует декларации возраста при отсутствии поля', () => {
     const decision = decideEligibility({ territory: 'RU' }, utc('2026-08-09'));
 
-    expect(decision).toEqual({ allowed: false, policyVersion: policy.version, reason: 'missing_age_declaration' });
+    expect(decision).toEqual({
+      allowed: false,
+      policyVersion: policy.version,
+      reason: 'missing_age_declaration',
+    });
   });
 
   it('нормализует регистр территории', () => {
-    const decision = decideEligibility({ birthDate: '2000-01-01', territory: ' ru ' }, utc('2026-08-09'));
+    const decision = decideEligibility(
+      { birthDate: '2000-01-01', territory: ' ru ' },
+      utc('2026-08-09'),
+    );
 
     expect(decision.allowed).toBe(true);
     expect(decision.allowed === true && decision.territory).toBe('RU');
@@ -86,7 +100,10 @@ describe('возрастная и территориальная политик�
   });
 
   it('не раскрывает дату рождения в решении', () => {
-    const decision = decideEligibility({ birthDate: '2019-05-17', territory: 'RU' }, utc('2026-08-09'));
+    const decision = decideEligibility(
+      { birthDate: '2019-05-17', territory: 'RU' },
+      utc('2026-08-09'),
+    );
 
     expect(JSON.stringify(decision)).not.toContain('2019-05-17');
   });
@@ -136,11 +153,16 @@ describe('возрастная и территориальная политик�
       restrictedMode: 'none',
     };
 
-    expect(decideEligibility({ birthDate: '2010-01-01', territory: 'KZ' }, utc('2026-08-09'), wider)).toEqual({
+    expect(
+      decideEligibility({ birthDate: '2010-01-01', territory: 'KZ' }, utc('2026-08-09'), wider),
+    ).toEqual({
       allowed: false,
       policyVersion: 'test.2',
       reason: 'below_minimum_age',
     });
-    expect(decideEligibility({ birthDate: '2000-01-01', territory: 'KZ' }, utc('2026-08-09'), wider).allowed).toBe(true);
+    expect(
+      decideEligibility({ birthDate: '2000-01-01', territory: 'KZ' }, utc('2026-08-09'), wider)
+        .allowed,
+    ).toBe(true);
   });
 });

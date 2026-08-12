@@ -12,7 +12,12 @@ import type { LimitUnit } from '@/config/limits';
  * В ошибку попадают только имя поля, фактический размер, предел и единица.
  * Пользовательский текст, payload и токены не логируются и не возвращаются.
  */
-function limitExceeded(field: string, actual: number, limit: number, unit: LimitUnit): ValidationError {
+function limitExceeded(
+  field: string,
+  actual: number,
+  limit: number,
+  unit: LimitUnit,
+): ValidationError {
   return new ValidationError('Превышен допустимый предел', [
     { path: field, message: `${actual} > ${limit} ${unit}` },
   ]);
@@ -68,7 +73,9 @@ export function assertJsonWithinLimits(field: string, value: unknown, limits: Js
   try {
     serialized = JSON.stringify(value ?? null);
   } catch {
-    throw new ValidationError('Значение не сериализуется в JSON', [{ path: field, message: 'not serializable' }]);
+    throw new ValidationError('Значение не сериализуется в JSON', [
+      { path: field, message: 'not serializable' },
+    ]);
   }
 
   assertMaxBytes(field, utf8ByteLength(serialized), limits.maxBytes);
@@ -79,7 +86,8 @@ export function assertJsonWithinLimits(field: string, value: unknown, limits: Js
 
   const depth = jsonDepth(value);
 
-  if (depth > limits.maxDepth) throw limitExceeded(`${field}.depth`, depth, limits.maxDepth, 'items');
+  if (depth > limits.maxDepth)
+    throw limitExceeded(`${field}.depth`, depth, limits.maxDepth, 'items');
 }
 
 function jsonDepth(value: unknown, current = 1): number {

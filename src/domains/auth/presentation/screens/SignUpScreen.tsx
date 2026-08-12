@@ -23,14 +23,59 @@ export function SignUpScreen(): ReactElement {
     if (status === 'authenticated') router.replace('/');
   }, [router, status]);
 
-  const canSubmit = displayName.trim().length > 0 && isEmail(email) && password.length >= MIN_PASSWORD_LENGTH;
+  const canSubmit =
+    displayName.trim().length > 0 && isEmail(email) && password.length >= MIN_PASSWORD_LENGTH;
 
   return (
-    <Screen title="Создать аккаунт" subtitle="Личное пространство создастся само" reserveTabBar={false}>
-      <AuthForm fields={[{ id: 'name', label: 'Как вас называть', value: displayName, onChange: setDisplayName, placeholder: 'Имя', autoComplete: 'name' }, { id: 'email', label: 'Почта', value: email, onChange: setEmail, placeholder: 'you@example.com', autoComplete: 'email', keyboardType: 'email-address' }, { id: 'password', label: 'Пароль', value: password, onChange: setPassword, placeholder: 'Минимум 8 символов', secure: true, autoComplete: 'new-password' }]} />
-      <Button label="Создать" disabled={!canSubmit} loading={auth.isPending} onPress={() => auth.signUp({ email, password, displayName: displayName.trim() })} />
-      <Button label="У меня есть аккаунт" variant="ghost" onPress={() => router.replace('/sign-in')} />
-      <Text variant="caption" align="center">Мы не публикуем ничего и не показываем ваши моменты другим.</Text>
+    <Screen
+      title="Создать аккаунт"
+      subtitle="Личное пространство создастся само"
+      reserveTabBar={false}
+    >
+      <AuthForm
+        fields={[
+          {
+            id: 'name',
+            label: 'Как вас называть',
+            value: displayName,
+            onChange: setDisplayName,
+            placeholder: 'Имя',
+            autoComplete: 'name',
+          },
+          {
+            id: 'email',
+            label: 'Почта',
+            value: email,
+            onChange: setEmail,
+            placeholder: 'you@example.com',
+            autoComplete: 'email',
+            keyboardType: 'email-address',
+          },
+          {
+            id: 'password',
+            label: 'Пароль',
+            value: password,
+            onChange: setPassword,
+            placeholder: 'Минимум 8 символов',
+            secure: true,
+            autoComplete: 'new-password',
+          },
+        ]}
+      />
+      <Button
+        label="Создать"
+        disabled={!canSubmit}
+        loading={auth.isPending}
+        onPress={() => auth.signUp({ email, password, displayName: displayName.trim() })}
+      />
+      <Button
+        label="У меня есть аккаунт"
+        variant="ghost"
+        onPress={() => router.replace('/sign-in')}
+      />
+      <Text variant="caption" align="center">
+        Мы не публикуем ничего и не показываем ваши моменты другим.
+      </Text>
     </Screen>
   );
 }

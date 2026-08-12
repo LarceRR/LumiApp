@@ -19,8 +19,10 @@ function isServerMessage(value: unknown): value is RealtimeServerMessageDto {
 
   const candidate = value as { type?: unknown; spaceId?: unknown };
 
-  return typeof candidate.type === 'string' &&
-    (candidate.spaceId === undefined || typeof candidate.spaceId === 'string');
+  return (
+    typeof candidate.type === 'string' &&
+    (candidate.spaceId === undefined || typeof candidate.spaceId === 'string')
+  );
 }
 
 /** Realtime only delivers changes; HTTP remains the source of truth. */

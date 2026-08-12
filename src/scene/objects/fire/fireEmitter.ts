@@ -39,7 +39,11 @@ export class VoxelFireEmitter {
    * @param wind overrides the authored wind. The field passes a per-object
    *   vector so movement gusts can be rotated into each fire's own frame.
    */
-  update(deltaSeconds: number, settings: FireSettings, wind: FireWindSettings = settings.wind): void {
+  update(
+    deltaSeconds: number,
+    settings: FireSettings,
+    wind: FireWindSettings = settings.wind,
+  ): void {
     this.ember.update(deltaSeconds, wind);
     this.flame.update(deltaSeconds, wind);
   }

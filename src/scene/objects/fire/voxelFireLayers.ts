@@ -83,12 +83,7 @@ export class VoxelFireLayers {
   }
 
   /** `yaw` turns the whole fire around its own cell centre (radians, Y axis). */
-  write(
-    emitter: VoxelFireEmitter,
-    origin: WorldPoint,
-    settings: FireSettings,
-    yaw = 0,
-  ): void {
+  write(emitter: VoxelFireEmitter, origin: WorldPoint, settings: FireSettings, yaw = 0): void {
     const worldScale = settings.worldScale;
     this.emberUsed = this.writeLayer(
       this.emberMesh,

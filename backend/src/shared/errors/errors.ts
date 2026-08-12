@@ -13,8 +13,18 @@ export class ValidationError extends AppError {
     this.violations = violations;
   }
 
-  override toPublicJson(): { kind: AppErrorKind; code: ErrorCode; message: string; details?: ErrorContext } {
-    return { kind: this.kind, code: this.code, message: this.message, details: { violations: this.violations } };
+  override toPublicJson(): {
+    kind: AppErrorKind;
+    code: ErrorCode;
+    message: string;
+    details?: ErrorContext;
+  } {
+    return {
+      kind: this.kind,
+      code: this.code,
+      message: this.message,
+      details: { violations: this.violations },
+    };
   }
 }
 

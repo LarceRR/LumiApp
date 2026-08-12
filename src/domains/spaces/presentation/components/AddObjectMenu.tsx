@@ -56,7 +56,10 @@ function AddObjectMenuComponent({ options, onSelect, bottom }: AddObjectMenuProp
                 styles.row,
                 index === 0
                   ? null
-                  : { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: theme.surfaceDivider },
+                  : {
+                      borderTopWidth: StyleSheet.hairlineWidth,
+                      borderTopColor: theme.surfaceDivider,
+                    },
                 pressed ? styles.pressed : null,
               ]}
             >

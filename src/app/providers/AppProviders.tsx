@@ -6,6 +6,23 @@ import { useSystemColorSchemeSync } from '@/design-system/colors/themeStore';
 import { ContainerProvider } from './ContainerProvider';
 import { ErrorBoundary } from './ErrorBoundary';
 import { QueryProvider } from './QueryProvider';
-function ThemeSync({ children }: { readonly children: ReactNode }): ReactElement { useSystemColorSchemeSync(); return <>{children}</>; }
-export function AppProviders({ children }: { readonly children: ReactNode }): ReactElement { return <GestureHandlerRootView style={styles.root}><SafeAreaProvider><ThemeSync><ErrorBoundary><ContainerProvider><QueryProvider>{children}</QueryProvider></ContainerProvider></ErrorBoundary></ThemeSync></SafeAreaProvider></GestureHandlerRootView>; }
+function ThemeSync({ children }: { readonly children: ReactNode }): ReactElement {
+  useSystemColorSchemeSync();
+  return <>{children}</>;
+}
+export function AppProviders({ children }: { readonly children: ReactNode }): ReactElement {
+  return (
+    <GestureHandlerRootView style={styles.root}>
+      <SafeAreaProvider>
+        <ThemeSync>
+          <ErrorBoundary>
+            <ContainerProvider>
+              <QueryProvider>{children}</QueryProvider>
+            </ContainerProvider>
+          </ErrorBoundary>
+        </ThemeSync>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
+  );
+}
 const styles = StyleSheet.create({ root: { flex: 1 } });

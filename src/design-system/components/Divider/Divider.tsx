@@ -12,9 +12,7 @@ function DividerComponent({ inset = false }: DividerProps): ReactElement {
   const theme = useThemeColors();
 
   return (
-    <View
-      style={[styles.line, { backgroundColor: theme.surfaceDivider }, inset && styles.inset]}
-    />
+    <View style={[styles.line, { backgroundColor: theme.surfaceDivider }, inset && styles.inset]} />
   );
 }
 

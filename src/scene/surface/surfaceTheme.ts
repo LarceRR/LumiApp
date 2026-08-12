@@ -49,17 +49,26 @@ function channel(source: string, from: number): number {
 
 function parseHex(hex: string): Rgb {
   const normalized = hex.trim().replace('#', '');
-  const expanded = normalized.length === 3 ? [...normalized].map((s) => `${s}${s}`).join('') : normalized;
+  const expanded =
+    normalized.length === 3 ? [...normalized].map((s) => `${s}${s}`).join('') : normalized;
   return { r: channel(expanded, 0), g: channel(expanded, 2), b: channel(expanded, 4) };
 }
 
 function toHex(rgb: Rgb): string {
-  const part = (value: number): string => Math.max(0, Math.min(255, Math.round(value))).toString(16).padStart(2, '0').toUpperCase();
+  const part = (value: number): string =>
+    Math.max(0, Math.min(255, Math.round(value)))
+      .toString(16)
+      .padStart(2, '0')
+      .toUpperCase();
   return `#${part(rgb.r)}${part(rgb.g)}${part(rgb.b)}`;
 }
 
 function mix(color: Rgb, target: Rgb, amount: number): Rgb {
-  return { r: color.r + (target.r - color.r) * amount, g: color.g + (target.g - color.g) * amount, b: color.b + (target.b - color.b) * amount };
+  return {
+    r: color.r + (target.r - color.r) * amount,
+    g: color.g + (target.g - color.g) * amount,
+    b: color.b + (target.b - color.b) * amount,
+  };
 }
 
 export function surfaceLuminance(hex: string): number {

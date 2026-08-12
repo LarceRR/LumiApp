@@ -98,7 +98,16 @@ export class FireParticleLayer {
     }
 
     while (this.particles.length < this.budget) {
-      const particle: Particle = { x: 0, y: 0, z: 0, age: 0, life: 1, scaleFrom: 0, scaleTo: 0, speed: 0 };
+      const particle: Particle = {
+        x: 0,
+        y: 0,
+        z: 0,
+        age: 0,
+        life: 1,
+        scaleFrom: 0,
+        scaleTo: 0,
+        speed: 0,
+      };
       this.respawn(particle, !this.seeded);
       this.particles.push(particle);
     }

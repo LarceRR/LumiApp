@@ -18,14 +18,11 @@ export function createHttpSurfaceObjectRepository(http: HttpClient): SurfaceObje
     },
 
     async create(input: CreateSurfaceObjectInput) {
-      const dto = await http.post<SurfaceObjectDto>(
-        `spaces/${input.spaceId}/surface-objects`,
-        {
-          kind: input.kind,
-          subjectUserId: input.subjectUserId,
-          ...(input.metadata === undefined ? {} : { metadata: input.metadata }),
-        },
-      );
+      const dto = await http.post<SurfaceObjectDto>(`spaces/${input.spaceId}/surface-objects`, {
+        kind: input.kind,
+        subjectUserId: input.subjectUserId,
+        ...(input.metadata === undefined ? {} : { metadata: input.metadata }),
+      });
 
       return toSurfaceObject(dto);
     },

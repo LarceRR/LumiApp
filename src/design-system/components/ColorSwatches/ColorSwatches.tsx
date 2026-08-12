@@ -12,13 +12,26 @@ export type ColorSwatchesProps = {
 };
 
 export const DEFAULT_SWATCHES: readonly string[] = [
-  '#FFF4D6', '#FFD08A', '#FFAA44', '#FE7A18', '#DE6524',
-  '#B23A0C', '#6F2B0A', '#3A1206', '#9AC7FF', '#5F7C99',
+  '#FFF4D6',
+  '#FFD08A',
+  '#FFAA44',
+  '#FE7A18',
+  '#DE6524',
+  '#B23A0C',
+  '#6F2B0A',
+  '#3A1206',
+  '#9AC7FF',
+  '#5F7C99',
 ];
 
 const SWATCH_SIZE = 32;
 
-function ColorSwatchesComponent({ value, onChange, accessibilityLabel, options = DEFAULT_SWATCHES }: ColorSwatchesProps): ReactElement {
+function ColorSwatchesComponent({
+  value,
+  onChange,
+  accessibilityLabel,
+  options = DEFAULT_SWATCHES,
+}: ColorSwatchesProps): ReactElement {
   const theme = useThemeColors();
   const current = value.toLowerCase();
 
@@ -34,7 +47,12 @@ function ColorSwatchesComponent({ value, onChange, accessibilityLabel, options =
             accessibilityState={{ selected }}
             hitSlop={layout.hitSlop}
             onPress={() => onChange(option)}
-            style={[styles.swatch, { backgroundColor: option, borderColor: theme.surfaceDivider }, selected ? { borderColor: theme.controlActive } : null, selected ? styles.selected : null]}
+            style={[
+              styles.swatch,
+              { backgroundColor: option, borderColor: theme.surfaceDivider },
+              selected ? { borderColor: theme.controlActive } : null,
+              selected ? styles.selected : null,
+            ]}
           />
         );
       })}
@@ -46,6 +64,11 @@ export const ColorSwatches = memo(ColorSwatchesComponent);
 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  swatch: { width: SWATCH_SIZE, height: SWATCH_SIZE, borderRadius: SWATCH_SIZE / 2, borderWidth: 1 },
+  swatch: {
+    width: SWATCH_SIZE,
+    height: SWATCH_SIZE,
+    borderRadius: SWATCH_SIZE / 2,
+    borderWidth: 1,
+  },
   selected: { borderWidth: 3 },
 });

@@ -18,7 +18,15 @@ import { SpacesController } from './presentation/controllers/spaces.controller';
 @Module({
   imports: [DrizzleModule, UsersModule, SurfacesModule, BillingModule],
   controllers: [SpacesController],
-  providers: [{ provide: SPACE_REPOSITORY, useClass: DrizzleSpaceRepository }, IdempotencyService, SpaceAccessService, ListSpacesHandler, CreateSpaceHandler, InviteMemberHandler, RespondToInvitationHandler],
+  providers: [
+    { provide: SPACE_REPOSITORY, useClass: DrizzleSpaceRepository },
+    IdempotencyService,
+    SpaceAccessService,
+    ListSpacesHandler,
+    CreateSpaceHandler,
+    InviteMemberHandler,
+    RespondToInvitationHandler,
+  ],
   exports: [SPACE_REPOSITORY, SpaceAccessService, CreateSpaceHandler],
 })
 export class SpacesModule {}

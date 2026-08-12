@@ -44,10 +44,7 @@ export function SegmentedControl<T extends string>({
             accessibilityState={{ selected }}
             hitSlop={layout.hitSlop}
             onPress={() => onChange(option.value)}
-            style={[
-              styles.segment,
-              selected && { backgroundColor: theme.surfaceRaised },
-            ]}
+            style={[styles.segment, selected && { backgroundColor: theme.surfaceRaised }]}
           >
             <Text
               variant="captionStrong"

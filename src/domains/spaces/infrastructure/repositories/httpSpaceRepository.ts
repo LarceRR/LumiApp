@@ -30,10 +30,9 @@ export function createHttpSpaceRepository(http: HttpClient): SpaceRepository {
     },
 
     async respondToInvitation(invitationId, accept) {
-      const dto = await http.post<InvitationDto>(
-        `spaces/invitations/${invitationId}/respond`,
-        { accept },
-      );
+      const dto = await http.post<InvitationDto>(`spaces/invitations/${invitationId}/respond`, {
+        accept,
+      });
       return toInvitation(dto);
     },
   };

@@ -18,7 +18,10 @@ function readPath(limits: AppLimits, path: string): unknown {
 
 /** Тест запускается из каталога backend, но не должен зависеть от этого. */
 function limitMatrixPath(): string {
-  const candidates = [resolve(process.cwd(), '../docs/limits.md'), resolve(process.cwd(), 'docs/limits.md')];
+  const candidates = [
+    resolve(process.cwd(), '../docs/limits.md'),
+    resolve(process.cwd(), 'docs/limits.md'),
+  ];
 
   return candidates.find((candidate) => existsSync(candidate)) ?? candidates[0] ?? '';
 }
@@ -49,7 +52,10 @@ describe('реестр лимитов (#38)', () => {
   });
 
   it('позволяет переопределить лимит переменной окружения без релиза клиента', () => {
-    const limits = loadLimits({ LIMIT_MOMENT_TEXT_MAX_LENGTH: '512', LIMIT_AI_REQUESTS_PER_USER_PER_DAY: '5' });
+    const limits = loadLimits({
+      LIMIT_MOMENT_TEXT_MAX_LENGTH: '512',
+      LIMIT_AI_REQUESTS_PER_USER_PER_DAY: '5',
+    });
 
     expect(limits.moments.textMaxLength).toBe(512);
     expect(limits.ai.requestsPerUserPerDay).toBe(5);
@@ -58,7 +64,9 @@ describe('реестр лимитов (#38)', () => {
   it.each([['0'], ['999999999'], ['abc'], [''], ['12.5']])(
     'падает на некорректном значении %s',
     (value) => {
-      expect(() => loadLimits({ LIMIT_MOMENT_TEXT_MAX_LENGTH: value })).toThrow(/LIMIT_MOMENT_TEXT_MAX_LENGTH/);
+      expect(() => loadLimits({ LIMIT_MOMENT_TEXT_MAX_LENGTH: value })).toThrow(
+        /LIMIT_MOMENT_TEXT_MAX_LENGTH/,
+      );
     },
   );
 

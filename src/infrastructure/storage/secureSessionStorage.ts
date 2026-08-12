@@ -19,8 +19,19 @@ function decode(raw: string): AuthSession | null {
     const parsed: unknown = JSON.parse(raw);
     if (typeof parsed !== 'object' || parsed === null) return null;
     const candidate = parsed as StoredSession;
-    if (typeof candidate.accessToken !== 'string' || typeof candidate.refreshToken !== 'string' || typeof candidate.expiresAt !== 'number' || typeof candidate.userId !== 'string') return null;
-    return { accessToken: candidate.accessToken, refreshToken: candidate.refreshToken, expiresAt: candidate.expiresAt, userId: userId(candidate.userId) };
+    if (
+      typeof candidate.accessToken !== 'string' ||
+      typeof candidate.refreshToken !== 'string' ||
+      typeof candidate.expiresAt !== 'number' ||
+      typeof candidate.userId !== 'string'
+    )
+      return null;
+    return {
+      accessToken: candidate.accessToken,
+      refreshToken: candidate.refreshToken,
+      expiresAt: candidate.expiresAt,
+      userId: userId(candidate.userId),
+    };
   } catch {
     return null;
   }
@@ -70,7 +81,9 @@ export function createSecureSessionStorage(onError?: (error: unknown) => void): 
     },
     async write(session) {
       try {
-        await SecureStore.setItemAsync(storageKeys.authSession, JSON.stringify(session), { keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY });
+        await SecureStore.setItemAsync(storageKeys.authSession, JSON.stringify(session), {
+          keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
+        });
       } catch (error) {
         report(error);
       }

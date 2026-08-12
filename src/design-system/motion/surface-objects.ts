@@ -7,7 +7,21 @@ const revealMs = launchMs + fallMs;
 const overlapMs = Math.round(approachMs * 0.32);
 
 export const surfaceObjectMotion = {
-  spawn: { pauseMs: 0, surfaceBreathMs: 0, materializeMs: 0, boundsExpandMs: durations.slow, approachMs, launchMs, fallMs, revealMs, overlapMs, cameraFocusMs: approachMs + (revealMs - overlapMs), focusDistanceFactor: 0.55, dropHeight: 1.35, spinTurns: 2 },
+  spawn: {
+    pauseMs: 0,
+    surfaceBreathMs: 0,
+    materializeMs: 0,
+    boundsExpandMs: durations.slow,
+    approachMs,
+    launchMs,
+    fallMs,
+    revealMs,
+    overlapMs,
+    cameraFocusMs: approachMs + (revealMs - overlapMs),
+    focusDistanceFactor: 0.55,
+    dropHeight: 1.35,
+    spinTurns: 2,
+  },
   inspect: {
     distanceFactor: 0.34,
     sheetScreenFraction: 0.56,
@@ -23,4 +37,10 @@ export const surfaceObjectMotion = {
   flameAnim: { spawnMs: 3_000, leaveDistanceFactor: 1.25 },
 } as const;
 
-export type SpawnPhase = 'idle' | 'pause' | 'surfaceBreath' | 'materialize' | 'cameraFocus' | 'complete';
+export type SpawnPhase =
+  | 'idle'
+  | 'pause'
+  | 'surfaceBreath'
+  | 'materialize'
+  | 'cameraFocus'
+  | 'complete';

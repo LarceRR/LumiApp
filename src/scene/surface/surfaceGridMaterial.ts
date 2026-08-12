@@ -93,10 +93,7 @@ export type SurfaceGridMaterial = ReturnType<typeof createSurfaceGridMaterial>;
  * Фон задаёт и заливку, и туман, и линии грида: иначе на тёмной поверхности
  * сетка пропадала бы, а горизонт уходил бы в белую дымку.
  */
-export function applySurfaceThemeUniforms(
-  material: SurfaceGridMaterial,
-  background: string,
-): void {
+export function applySurfaceThemeUniforms(material: SurfaceGridMaterial, background: string): void {
   const fill = material.uniforms.fillColor?.value;
   const fog = material.uniforms.fogColor?.value;
   const grid = material.uniforms.gridColor?.value;

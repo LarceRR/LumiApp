@@ -9,9 +9,7 @@ export function registerSurfaceObject(definition: SurfaceObjectDefinition): void
   REGISTRY.set(definition.kind, definition);
 }
 
-export function surfaceObjectDefinition(
-  kind: SurfaceObjectKind,
-): SurfaceObjectDefinition | null {
+export function surfaceObjectDefinition(kind: SurfaceObjectKind): SurfaceObjectDefinition | null {
   return REGISTRY.get(kind) ?? null;
 }
 

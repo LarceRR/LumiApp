@@ -5,7 +5,10 @@ import { APP_CONFIG, type AppConfig } from '@/config/env';
 import { SpaceAccessService } from '@/modules/spaces/application/services/spaceAccess.service';
 import type { SpaceId } from '@/modules/spaces/domain/value-objects/SpacePermission';
 import { SurfaceResolverService } from '@/modules/surfaces/application/services/surfaceResolver.service';
-import { SURFACE_REPOSITORY, type SurfaceRepository } from '@/modules/surfaces/domain/repositories/SurfaceRepository';
+import {
+  SURFACE_REPOSITORY,
+  type SurfaceRepository,
+} from '@/modules/surfaces/domain/repositories/SurfaceRepository';
 import { spawnNearExisting } from '@/modules/surfaces/domain/services/spawnNearExisting';
 import type { UserId } from '@/modules/users/domain/value-objects/UserId';
 import { IdempotencyService } from '@/shared/idempotency/idempotency.service';
@@ -14,7 +17,10 @@ import { domainEventNames, type SurfaceObjectCreatedEvent } from '@/shared/event
 import { RANDOM_SOURCE, type RandomSource } from '@/shared/utils/random';
 
 import type { SurfaceObject, SurfaceObjectMetadata } from '../../domain/entities/SurfaceObject';
-import { SURFACE_OBJECT_REPOSITORY, type SurfaceObjectRepository } from '../../domain/repositories/SurfaceObjectRepository';
+import {
+  SURFACE_OBJECT_REPOSITORY,
+  type SurfaceObjectRepository,
+} from '../../domain/repositories/SurfaceObjectRepository';
 import { assertSubjectAllowed, defaultSubjectUserId } from '../../domain/services/subjectPolicy';
 import { kindPolicy, type SurfaceObjectKind } from '../../domain/value-objects/SurfaceObjectKind';
 import { toSurfaceObjectDto } from '../mappers/surfaceObject.mapper';
@@ -47,18 +53,38 @@ export class CreateSurfaceObjectHandler {
     return this.idempotency.execute({
       key: command.idempotencyKey,
       scope: `surface-object:create:${command.createdByUserId}:${command.spaceId}`,
-      payload: { kind: command.kind, subjectUserId: command.subjectUserId, metadata: command.metadata },
+      payload: {
+        kind: command.kind,
+        subjectUserId: command.subjectUserId,
+        metadata: command.metadata,
+      },
       operation: () => this.create(command),
     });
   }
 
   private async create(command: CreateSurfaceObjectCommand): Promise<SurfaceObject> {
-    const space = await this.access.assertPermission(command.spaceId, command.createdByUserId, 'surfaceObject.create');
-    const subjectUserId = command.subjectUserId ?? defaultSubjectUserId(space, command.createdByUserId);
-    assertSubjectAllowed({ space, kind: command.kind, createdByUserId: command.createdByUserId, subjectUserId });
+    const space = await this.access.assertPermission(
+      command.spaceId,
+      command.createdByUserId,
+      'surfaceObject.create',
+    );
+    const subjectUserId =
+      command.subjectUserId ?? defaultSubjectUserId(space, command.createdByUserId);
+    assertSubjectAllowed({
+      space,
+      kind: command.kind,
+      createdByUserId: command.createdByUserId,
+      subjectUserId,
+    });
     const surface = await this.surfaceResolver.resolve(space.id);
     const radius = Math.max(kindPolicy(command.kind).spawnRadius, this.config.surface.spawnRadius);
-    const created = await this.insertAtFreeCell({ surfaceId: surface.id, spaceId: space.id, radius, command, subjectUserId });
+    const created = await this.insertAtFreeCell({
+      surfaceId: surface.id,
+      spaceId: space.id,
+      radius,
+      command,
+      subjectUserId,
+    });
     await this.surfaces.touch(surface.id);
     await this.access.invalidate(space.id);
     this.events.emit(domainEventNames.surfaceObjectCreated, {
@@ -69,14 +95,30 @@ export class CreateSurfaceObjectHandler {
     return created;
   }
 
-  private async insertAtFreeCell(params: { readonly surfaceId: SurfaceObject['surfaceId']; readonly spaceId: SpaceId; readonly radius: number; readonly command: CreateSurfaceObjectCommand; readonly subjectUserId: UserId }): Promise<SurfaceObject> {
+  private async insertAtFreeCell(params: {
+    readonly surfaceId: SurfaceObject['surfaceId'];
+    readonly spaceId: SpaceId;
+    readonly radius: number;
+    readonly command: CreateSurfaceObjectCommand;
+    readonly subjectUserId: UserId;
+  }): Promise<SurfaceObject> {
     let lastConflict: ConflictError | null = null;
     for (let attempt = 0; attempt < MAX_CELL_ATTEMPTS; attempt += 1) {
       const existing = await this.objects.listBySurface(params.surfaceId);
       const occupied = existing.map((object) => object.cell);
-      const lastCreated = existing.reduce<(typeof existing)[number] | undefined>((latest, object) => latest === undefined || object.createdAt >= latest.createdAt ? object : latest, undefined);
+      const lastCreated = existing.reduce<(typeof existing)[number] | undefined>(
+        (latest, object) =>
+          latest === undefined || object.createdAt >= latest.createdAt ? object : latest,
+        undefined,
+      );
       const policy = kindPolicy(params.command.kind);
-      const cell = spawnNearExisting({ occupied, radius: params.radius, random: this.random, minSeparation: policy.minSeparation, ...(lastCreated === undefined ? {} : { near: lastCreated.cell }) });
+      const cell = spawnNearExisting({
+        occupied,
+        radius: params.radius,
+        random: this.random,
+        minSeparation: policy.minSeparation,
+        ...(lastCreated === undefined ? {} : { near: lastCreated.cell }),
+      });
       try {
         return await this.objects.insert({
           spaceId: params.spaceId,
@@ -89,10 +131,16 @@ export class CreateSurfaceObjectHandler {
           metadata: params.command.metadata,
         });
       } catch (error) {
-        if (error instanceof ConflictError) { lastConflict = error; continue; }
+        if (error instanceof ConflictError) {
+          lastConflict = error;
+          continue;
+        }
         throw error;
       }
     }
-    throw lastConflict ?? new ConflictError('Не удалось занять ячейку на поверхности', { surfaceId: params.surfaceId });
+    throw (
+      lastConflict ??
+      new ConflictError('Не удалось занять ячейку на поверхности', { surfaceId: params.surfaceId })
+    );
   }
 }
