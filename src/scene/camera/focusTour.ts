@@ -9,11 +9,17 @@ export type FocusTourState = {
   readonly savedTarget: OrbitTarget;
   readonly savedDistance: number;
   readonly savedAzimuth: number;
+  readonly savedElevation: number;
   readonly focusDistance: number;
   /** Resting yaw of the object (before / after spawn spin). */
   readonly faceYaw: number;
   /** Orbit azimuth that puts the camera in front of the object's face. */
   readonly focusAzimuth: number;
+  /**
+   * Elevation to land on. Inspect passes the angle the user is already looking
+   * from, so framing a model never quietly tilts the surface back.
+   */
+  readonly focusElevation: number;
   readonly elapsedSeconds: number;
   readonly approachSeconds: number;
   /** Launch + fall. */
@@ -91,6 +97,7 @@ export function focusTourFrame(tour: FocusTourState): {
   readonly target: OrbitTarget;
   readonly distance: number;
   readonly azimuth: number;
+  readonly elevation: number;
   readonly done: boolean;
 } {
   const total = focusTourTotalSeconds(tour);
@@ -100,6 +107,7 @@ export function focusTourFrame(tour: FocusTourState): {
       target: tour.focusTarget,
       distance: tour.focusDistance,
       azimuth: tour.focusAzimuth,
+      elevation: tour.focusElevation,
       done: true,
     };
   }
@@ -113,6 +121,7 @@ export function focusTourFrame(tour: FocusTourState): {
       target: lerpOrbit(tour.savedTarget, tour.focusTarget, t),
       distance: tour.savedDistance + (tour.focusDistance - tour.savedDistance) * t,
       azimuth: lerpAngle(tour.savedAzimuth, tour.focusAzimuth, t),
+      elevation: tour.savedElevation + (tour.focusElevation - tour.savedElevation) * t,
       done: false,
     };
   }
@@ -122,6 +131,7 @@ export function focusTourFrame(tour: FocusTourState): {
     target: tour.focusTarget,
     distance: tour.focusDistance,
     azimuth: tour.focusAzimuth,
+    elevation: tour.focusElevation,
     done: false,
   };
 }
