@@ -23,10 +23,11 @@ export const surfaceObjectMotion = {
     spinTurns: 2,
   },
   inspect: {
+    /** Opening guess for the framing solver, which then measures its way in. */
     distanceFactor: 0.34,
     sheetScreenFraction: 0.56,
-    /** Smaller lift leaves the selected object ~35px lower above the sheet. */
-    screenLiftFactor: 0.18,
+    /** Share of the free zone height the inspected model has to cover. */
+    fitFraction: 0.8,
     rotateMs: 640,
   },
   open: { distanceFactor: 0.6 },
