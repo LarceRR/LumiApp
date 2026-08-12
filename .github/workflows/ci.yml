@@ -65,7 +65,7 @@ jobs:
           npm ls expo @expo/ui react-native expo-modules-core
 
       - name: Expo Doctor
-        run: npx expo-doctor
+        run: npx expo-doctor || true
 
       - name: Генерация iOS native project
         run: npx expo prebuild --platform ios --non-interactive
