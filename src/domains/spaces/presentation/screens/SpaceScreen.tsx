@@ -18,6 +18,7 @@ import { useSurfaceObjectsStore } from '@/domains/surface-objects/presentation/s
 import { useSurface } from '@/domains/surfaces/presentation/hooks/useSurface';
 import { selectIsSyncing, useRealtimeStore } from '@/infrastructure/realtime/realtimeStore';
 import { useRealtimeSync } from '@/infrastructure/realtime/useRealtimeSync';
+import { TOP_CHROME_HEIGHT } from '@/scene/camera/freeZone';
 import { SceneView } from '@/scene/SceneView';
 import { useCameraStore } from '@/scene/stores/cameraStore';
 import { useInspectStore } from '@/scene/stores/inspectStore';
@@ -32,7 +33,6 @@ import { MemberAvatars } from '../components/MemberAvatars';
 import { ObjectDetailsSheet } from '../components/ObjectDetailsSheet';
 import { useSpaces } from '../hooks/useSpaces';
 const ADD_BUTTON_SIZE = 64;
-const TOP_ROW_HEIGHT = 40;
 export function SpaceScreen(): ReactElement {
   const insets = useSafeAreaInsets();
   const theme = useThemeColors();
@@ -185,8 +185,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.md,
   },
-  topSlot: { flex: 1, minHeight: TOP_ROW_HEIGHT, justifyContent: 'center', gap: spacing.xxs },
-  topRight: { minHeight: TOP_ROW_HEIGHT, alignItems: 'flex-end', justifyContent: 'center' },
+  // Height is shared with the inspect free zone: the camera must know exactly
+  // how much of the top of the display this row takes.
+  topSlot: { flex: 1, minHeight: TOP_CHROME_HEIGHT, justifyContent: 'center', gap: spacing.xxs },
+  topRight: { minHeight: TOP_CHROME_HEIGHT, alignItems: 'flex-end', justifyContent: 'center' },
   addDock: { position: 'absolute', left: 0, right: 0, alignItems: 'center' },
   loader: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
   notice: { position: 'absolute', left: layout.screenGutter, right: layout.screenGutter },
