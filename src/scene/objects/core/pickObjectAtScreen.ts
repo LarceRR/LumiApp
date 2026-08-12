@@ -1,10 +1,12 @@
 import type { Cell } from '@/domains/surface-objects/domain/value-objects/Cell';
 import type { SurfaceObjectId } from '@/domains/surface-objects/domain/value-objects/SurfaceObjectId';
-import { cameraConfig, orbitPosition } from '@/scene/camera/cameraConfig';
+import {
+  type OrbitFrame,
+  orbitScreenBasis,
+  screenGroundHit,
+} from '@/scene/camera/cameraConfig';
 import { cellToWorld } from '@/scene/surface/cellToWorld';
 import { SURFACE_CELL_WORLD_SIZE } from '@/scene/surface/constants';
-
-import type { OrbitFrame } from './fogVisibility';
 
 export type PickableObject = {
   readonly id: SurfaceObjectId;
@@ -12,7 +14,11 @@ export type PickableObject = {
 };
 
 /**
- * Ray–plane hit on y = 0 from a screen point, using the current orbit camera.
+ * Ray-plane hit on y = 0 from a screen point, using the current orbit camera.
+ *
+ * The basis comes from `orbitScreenBasis`, which is why this now works looking
+ * straight down: the old local cross product collapsed there and rotated every
+ * hit by the azimuth, so taps landed on empty cells and drags ran backwards.
  */
 export function groundHitFromScreen(
   screenX: number,
@@ -21,59 +27,13 @@ export function groundHitFromScreen(
   screenHeight: number,
   orbit: OrbitFrame,
 ): { readonly x: number; readonly z: number } | null {
-  if (screenWidth <= 0 || screenHeight <= 0) {
+  const viewport = { width: screenWidth, height: screenHeight };
+
+  if (viewport.width <= 0 || viewport.height <= 0) {
     return null;
   }
 
-  const ndcX = (screenX / screenWidth) * 2 - 1;
-  const ndcY = -((screenY / screenHeight) * 2 - 1);
-  const cam = orbitPosition(orbit);
-  const tx = orbit.target.x - cam.x;
-  const ty = orbit.target.y - cam.y;
-  const tz = orbit.target.z - cam.z;
-  const fl = Math.hypot(tx, ty, tz) || 1;
-  const fx = tx / fl;
-  const fy = ty / fl;
-  const fz = tz / fl;
-
-  // Right = forward × worldUp (assuming worldUp = (0,1,0))
-  let rx = -fz;
-  const ry = 0;
-  let rz = fx;
-  const rl = Math.hypot(rx, ry, rz);
-  if (rl < 1e-6) {
-    rx = 1;
-    rz = 0;
-  } else {
-    rx /= rl;
-    rz /= rl;
-  }
-
-  // Up = Right × forward
-  const ux = ry * fz - rz * fy;
-  const uy = rz * fx - rx * fz;
-  const uz = rx * fy - ry * fx;
-
-  const aspect = screenWidth / screenHeight;
-  const tanHalf = Math.tan((cameraConfig.fov * Math.PI) / 180 / 2);
-  const dx = fx + rx * ndcX * tanHalf * aspect + ux * ndcY * tanHalf;
-  const dy = fy + ry * ndcX * tanHalf * aspect + uy * ndcY * tanHalf;
-  const dz = fz + rz * ndcX * tanHalf * aspect + uz * ndcY * tanHalf;
-  const dl = Math.hypot(dx, dy, dz) || 1;
-  const dirX = dx / dl;
-  const dirY = dy / dl;
-  const dirZ = dz / dl;
-
-  if (Math.abs(dirY) < 1e-6) {
-    return null;
-  }
-
-  const t = -cam.y / dirY;
-  if (t < 0) {
-    return null;
-  }
-
-  return { x: cam.x + dirX * t, z: cam.z + dirZ * t };
+  return screenGroundHit(orbitScreenBasis(orbit, viewport), viewport, screenX, screenY);
 }
 
 /** Nearest object whose cell centre is within half a cell of the ground hit. */
@@ -88,6 +48,7 @@ export function pickNearestObject(
   for (const object of objects) {
     const world = cellToWorld(object.cell);
     const dist = Math.hypot(world.x - hit.x, world.z - hit.z);
+
     if (dist <= bestDist) {
       best = object;
       bestDist = dist;

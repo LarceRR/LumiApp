@@ -15,10 +15,12 @@ const base: FocusTourState = {
   savedTarget: { x: 0, y: 0, z: 0 },
   savedDistance: 10,
   savedAzimuth: 0,
+  savedElevation: 0.35,
   focusDistance: 5,
   faceYaw: 0.2,
   // Camera on the fire's +X face after yaw (see orbitAzimuthFacing).
   focusAzimuth: 0.2 + Math.PI / 2,
+  focusElevation: 0.35,
   elapsedSeconds: 0,
   approachSeconds: 0.6,
   revealSeconds: 1.2,
@@ -80,6 +82,15 @@ describe('focusTour', () => {
     expect(frame.done).toBe(true);
     expect(frame.target).toEqual(base.focusTarget);
     expect(frame.azimuth).toBe(base.focusAzimuth);
+    expect(frame.elevation).toBe(base.focusElevation);
+  });
+
+  it('eases elevation toward the framing angle instead of snapping', () => {
+    const tour = { ...base, savedElevation: 1.2, focusElevation: 0.4 };
+    const mid = focusTourFrame({ ...tour, elapsedSeconds: tour.approachSeconds / 2 });
+
+    expect(mid.elevation).toBeLessThan(tour.savedElevation);
+    expect(mid.elevation).toBeGreaterThan(tour.focusElevation);
   });
 
   it('lerps azimuth along the short arc', () => {

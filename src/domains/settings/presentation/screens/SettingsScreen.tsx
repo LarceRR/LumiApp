@@ -11,6 +11,7 @@ import {
   SegmentedControl,
   type SegmentedControlOption,
 } from '@/design-system/components/SegmentedControl/SegmentedControl';
+import { Slider } from '@/design-system/components/Slider/Slider';
 import { Switch } from '@/design-system/components/Switch/Switch';
 import { Text } from '@/design-system/components/Text/Text';
 import type { SurfaceObjectKind } from '@/domains/surface-objects/domain/value-objects/SurfaceObjectKind';
@@ -34,12 +35,18 @@ export function SettingsScreen(): ReactElement {
   const reduceMotion = useSettingsStore((state) => state.reduceMotion);
   const showPerformanceOverlay = useSettingsStore((state) => state.showPerformanceOverlay);
   const showHitbox = useSettingsStore((state) => state.showHitbox);
+  const manualHitbox = useSettingsStore((state) => state.manualHitbox);
+  const hitboxWidthPx = useSettingsStore((state) => state.hitboxWidthPx);
+  const hitboxHeightPx = useSettingsStore((state) => state.hitboxHeightPx);
   const surfaceBackground = useSettingsStore((state) => state.surfaceBackground);
   const highlightEndpoints = useSettingsStore((state) => state.highlightEndpoints);
   const setThemeMode = useSettingsStore((state) => state.setThemeMode);
   const setReduceMotion = useSettingsStore((state) => state.setReduceMotion);
   const setShowPerformanceOverlay = useSettingsStore((state) => state.setShowPerformanceOverlay);
   const setShowHitbox = useSettingsStore((state) => state.setShowHitbox);
+  const setManualHitbox = useSettingsStore((state) => state.setManualHitbox);
+  const setHitboxWidthPx = useSettingsStore((state) => state.setHitboxWidthPx);
+  const setHitboxHeightPx = useSettingsStore((state) => state.setHitboxHeightPx);
   const setSurfaceBackground = useSettingsStore((state) => state.setSurfaceBackground);
   const setHighlightEndpoints = useSettingsStore((state) => state.setHighlightEndpoints);
   const quality = useSceneStore((state) => state.quality);
@@ -148,7 +155,7 @@ export function SettingsScreen(): ReactElement {
         <Divider />
         <ListRow
           title="Отображение 2D хитбокса"
-          subtitle="Рамка и центр выбранного объекта в момент нажатия"
+          subtitle="Рамка объекта и свободная зона, в которую его вписала камера"
           trailing={
             <Switch
               value={showHitbox}
@@ -157,6 +164,40 @@ export function SettingsScreen(): ReactElement {
             />
           }
         />
+        <Divider />
+        <ListRow
+          title="Ручной размер хитбокса"
+          subtitle="Выключено — размер считается из настроек самой модели"
+          trailing={
+            <Switch
+              value={manualHitbox}
+              onValueChange={setManualHitbox}
+              accessibilityLabel="Ручной размер хитбокса"
+            />
+          }
+        />
+        {manualHitbox ? (
+          <>
+            <Text variant="caption">{`Ширина ${Math.round(hitboxWidthPx)} px`}</Text>
+            <Slider
+              accessibilityLabel="Ширина хитбокса"
+              value={hitboxWidthPx}
+              min={16}
+              max={400}
+              step={2}
+              onChange={setHitboxWidthPx}
+            />
+            <Text variant="caption">{`Высота ${Math.round(hitboxHeightPx)} px`}</Text>
+            <Slider
+              accessibilityLabel="Высота хитбокса"
+              value={hitboxHeightPx}
+              min={16}
+              max={600}
+              step={2}
+              onChange={setHitboxHeightPx}
+            />
+          </>
+        ) : null}
         <Divider />
         <Text variant="caption">
           Качество: {quality.tier}, до {quality.maxInstancesPerKind} объектов в кадре. Версия:{' '}

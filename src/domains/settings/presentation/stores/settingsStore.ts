@@ -5,6 +5,8 @@ export type SettingsState = {
   reduceMotion: boolean;
   showPerformanceOverlay: boolean;
   showHitbox: boolean;
+  /** On: the two pixel sliders below author the hitbox. Off: the model does. */
+  manualHitbox: boolean;
   hitboxWidthPx: number;
   hitboxHeightPx: number;
   surfaceBackground: string | null;
@@ -13,6 +15,7 @@ export type SettingsState = {
   setReduceMotion: (value: boolean) => void;
   setShowPerformanceOverlay: (value: boolean) => void;
   setShowHitbox: (value: boolean) => void;
+  setManualHitbox: (value: boolean) => void;
   setHitboxWidthPx: (value: number) => void;
   setHitboxHeightPx: (value: number) => void;
   setSurfaceBackground: (value: string | null) => void;
@@ -24,6 +27,7 @@ export type PersistedSettings = {
   readonly reduceMotion: boolean;
   readonly showPerformanceOverlay: boolean;
   readonly showHitbox: boolean;
+  readonly manualHitbox?: boolean;
   readonly hitboxWidthPx?: number;
   readonly hitboxHeightPx?: number;
   readonly surfaceBackground: string | null;
@@ -37,6 +41,7 @@ export const useSettingsStore = create<SettingsState>()((set) => ({
   reduceMotion: false,
   showPerformanceOverlay: false,
   showHitbox: false,
+  manualHitbox: false,
   hitboxWidthPx: 84,
   hitboxHeightPx: 120,
   surfaceBackground: null,
@@ -48,6 +53,7 @@ export const useSettingsStore = create<SettingsState>()((set) => ({
   setReduceMotion: (reduceMotion) => set({ reduceMotion }),
   setShowPerformanceOverlay: (showPerformanceOverlay) => set({ showPerformanceOverlay }),
   setShowHitbox: (showHitbox) => set({ showHitbox }),
+  setManualHitbox: (manualHitbox) => set({ manualHitbox }),
   setHitboxWidthPx: (hitboxWidthPx) => set({ hitboxWidthPx: Math.max(8, hitboxWidthPx) }),
   setHitboxHeightPx: (hitboxHeightPx) => set({ hitboxHeightPx: Math.max(8, hitboxHeightPx) }),
   setSurfaceBackground: (surfaceBackground) => set({ surfaceBackground }),
@@ -62,6 +68,7 @@ export const useSettingsStore = create<SettingsState>()((set) => ({
     if (values.showPerformanceOverlay !== undefined)
       next.showPerformanceOverlay = values.showPerformanceOverlay;
     if (values.showHitbox !== undefined) next.showHitbox = values.showHitbox;
+    if (values.manualHitbox !== undefined) next.manualHitbox = values.manualHitbox;
     if (values.hitboxWidthPx !== undefined) next.hitboxWidthPx = Math.max(8, values.hitboxWidthPx);
     if (values.hitboxHeightPx !== undefined)
       next.hitboxHeightPx = Math.max(8, values.hitboxHeightPx);
@@ -77,6 +84,7 @@ export function persistedSettings(state: SettingsState): PersistedSettings {
     reduceMotion: state.reduceMotion,
     showPerformanceOverlay: state.showPerformanceOverlay,
     showHitbox: state.showHitbox,
+    manualHitbox: state.manualHitbox,
     hitboxWidthPx: state.hitboxWidthPx,
     hitboxHeightPx: state.hitboxHeightPx,
     surfaceBackground: state.surfaceBackground,
@@ -88,3 +96,4 @@ export const selectSurfaceBackground = (state: SettingsState): string | null =>
   state.surfaceBackground;
 export const selectHighlightEndpoints = (state: SettingsState): boolean => state.highlightEndpoints;
 export const selectShowHitbox = (state: SettingsState): boolean => state.showHitbox;
+export const selectManualHitbox = (state: SettingsState): boolean => state.manualHitbox;

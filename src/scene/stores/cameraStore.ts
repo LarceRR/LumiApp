@@ -1,11 +1,12 @@
 import { create } from 'zustand';
+
 import { cameraMotion } from '@/design-system/motion/camera';
 import { surfaceObjectMotion } from '@/design-system/motion/surface-objects';
 import type { Cell } from '@/domains/surface-objects/domain/value-objects/Cell';
 import {
   elevationForDistance,
-  inspectTargetYOffset,
-  inspectTargetYOffsetFor,
+  MAX_ELEVATION_RAD,
+  MIN_ELEVATION_RAD,
 } from '@/scene/camera/cameraConfig';
 import {
   type FocusTourState,
@@ -14,33 +15,48 @@ import {
 } from '@/scene/camera/focusTour';
 import { lerpTarget, targetDistance } from '@/scene/camera/recenter';
 import { orbitAzimuthFacing } from '@/scene/objects/core/objectFacing';
+import { clamp } from '@/shared/utils/math';
+
 export type OrbitTarget = { readonly x: number; readonly y: number; readonly z: number };
+
 export type OrbitState = {
   readonly azimuth: number;
   readonly elevation: number;
   readonly distance: number;
   readonly target: OrbitTarget;
 };
+
 export type OrbitVelocity = { readonly azimuth: number; readonly elevation: number };
 export type PanVelocity = { readonly x: number; readonly z: number };
-export type InspectFraming = {
-  readonly screenHeight: number;
-  readonly sheetTopPx: number;
-  readonly centerLiftPx: number;
-  readonly measuredAtDistance: number;
+
+/**
+ * Where inspect wants the camera, already solved by `solveInspectFraming`.
+ *
+ * The store deliberately knows nothing about models, sheets or screens: it flies
+ * to a pose someone measured for it.
+ */
+export type InspectFocusFraming = {
+  readonly target: OrbitTarget;
+  readonly distance: number;
+  readonly elevation: number;
 };
+
 export type FocusTourOptions = {
   readonly mode?: 'spawn' | 'inspect';
-  readonly framing?: InspectFraming;
+  readonly framing?: InspectFocusFraming;
 };
+
 type RecenterAnimation = {
   readonly from: OrbitTarget;
   readonly to: OrbitTarget;
   readonly fromDistance: number | null;
   readonly toDistance: number | null;
+  readonly fromElevation: number | null;
+  readonly toElevation: number | null;
   readonly elapsedSeconds: number;
   readonly durationSeconds: number;
 };
+
 type CameraState = {
   readonly orbit: OrbitState;
   readonly orbitVelocity: OrbitVelocity;
@@ -49,6 +65,8 @@ type CameraState = {
   readonly mapCenterCell: Cell;
   readonly recenter: RecenterAnimation | null;
   readonly focusTour: FocusTourState | null;
+  /** Pose to come back to when inspect ends, captured before the first tour. */
+  readonly inspectReturn: OrbitState | null;
   readonly defaultDistance: number;
   setDefaultDistance: (distance: number) => void;
   setMapCenter: (center: OrbitTarget, cell: Cell) => void;
@@ -70,21 +88,37 @@ type CameraState = {
   tickMomentum: (deltaSeconds: number) => void;
   reset: () => void;
 };
+
 const DEFAULT_TARGET: OrbitTarget = { x: 0, y: 0, z: 0 };
 const DEFAULT_MAP_CENTER_CELL: Cell = { x: 0, y: 0 };
 const ZERO_ORBIT_VELOCITY: OrbitVelocity = { azimuth: 0, elevation: 0 };
 const ZERO_PAN_VELOCITY: PanVelocity = { x: 0, z: 0 };
+
 function clampElevation(value: number): number {
-  const min = (cameraMotion.minElevationDeg * Math.PI) / 180;
-  const max = (cameraMotion.maxElevationDeg * Math.PI) / 180;
-  return Math.min(max, Math.max(min, value));
+  return clamp(value, MIN_ELEVATION_RAD, MAX_ELEVATION_RAD);
 }
+
 function clampDistance(distance: number, defaultDistance: number): number {
-  return Math.min(
+  return clamp(
+    distance,
+    defaultDistance * cameraMotion.minDistanceFactor,
     defaultDistance * cameraMotion.maxDistanceFactor,
-    Math.max(defaultDistance * cameraMotion.minDistanceFactor, distance),
   );
 }
+
+/**
+ * Inspect may come closer than a pinch is allowed to: the model has to own the
+ * free zone, and top-down that means getting near enough for its footprint to
+ * fill a band a third of the screen tall.
+ */
+function clampInspectDistance(distance: number, defaultDistance: number): number {
+  return clamp(
+    distance,
+    defaultDistance * cameraMotion.inspectMinDistanceFactor,
+    defaultDistance * cameraMotion.maxDistanceFactor,
+  );
+}
+
 function createInitialOrbit(defaultDistance: number, mapCenter = DEFAULT_TARGET): OrbitState {
   return {
     azimuth: 0,
@@ -93,20 +127,7 @@ function createInitialOrbit(defaultDistance: number, mapCenter = DEFAULT_TARGET)
     target: mapCenter,
   };
 }
-function inspectOffset(focusDistance: number, framing: InspectFraming | undefined): number {
-  if (!framing || framing.screenHeight <= 0)
-    return inspectTargetYOffset(focusDistance, surfaceObjectMotion.inspect.sheetScreenFraction);
-  const scale =
-    framing.measuredAtDistance > 0 && focusDistance > 0
-      ? framing.measuredAtDistance / focusDistance
-      : 1;
-  return inspectTargetYOffsetFor({
-    focusDistance,
-    screenHeight: framing.screenHeight,
-    sheetTopPx: framing.sheetTopPx,
-    objectCenterLiftPx: framing.centerLiftPx * scale,
-  });
-}
+
 export const useCameraStore = create<CameraState>()((set, get) => ({
   defaultDistance: 10,
   orbit: createInitialOrbit(10),
@@ -116,6 +137,7 @@ export const useCameraStore = create<CameraState>()((set, get) => ({
   mapCenterCell: DEFAULT_MAP_CENTER_CELL,
   recenter: null,
   focusTour: null,
+  inspectReturn: null,
   setDefaultDistance: (defaultDistance) =>
     set((state) => ({
       defaultDistance,
@@ -134,22 +156,24 @@ export const useCameraStore = create<CameraState>()((set, get) => ({
   setMapCenter: (mapCenter, mapCenterCell) => set({ mapCenter, mapCenterCell }),
   setTarget: (target) => set((state) => ({ orbit: { ...state.orbit, target } })),
   frameObject: (target, faceYaw, distanceFactor) =>
-    set((state) => ({
-      recenter: null,
-      focusTour: null,
-      orbitVelocity: ZERO_ORBIT_VELOCITY,
-      panVelocity: ZERO_PAN_VELOCITY,
-      orbit: {
-        ...state.orbit,
-        target: { ...target },
-        azimuth: orbitAzimuthFacing(faceYaw),
-        distance: clampDistance(state.defaultDistance * distanceFactor, state.defaultDistance),
-        elevation: elevationForDistance(
-          clampDistance(state.defaultDistance * distanceFactor, state.defaultDistance),
-          state.defaultDistance,
-        ),
-      },
-    })),
+    set((state) => {
+      const distance = clampDistance(state.defaultDistance * distanceFactor, state.defaultDistance);
+
+      return {
+        recenter: null,
+        focusTour: null,
+        inspectReturn: null,
+        orbitVelocity: ZERO_ORBIT_VELOCITY,
+        panVelocity: ZERO_PAN_VELOCITY,
+        orbit: {
+          ...state.orbit,
+          target: { ...target },
+          azimuth: orbitAzimuthFacing(faceYaw),
+          distance,
+          elevation: elevationForDistance(distance, state.defaultDistance),
+        },
+      };
+    }),
   orbitBy: (deltaAzimuth, deltaElevation) => {
     if (get().focusTour !== null) return;
     set((state) => ({
@@ -202,6 +226,8 @@ export const useCameraStore = create<CameraState>()((set, get) => ({
         to: { ...mapCenter },
         fromDistance: null,
         toDistance: null,
+        fromElevation: null,
+        toElevation: null,
         elapsedSeconds: 0,
         durationSeconds: cameraMotion.recenterDurationMs / 1000,
       },
@@ -220,15 +246,21 @@ export const useCameraStore = create<CameraState>()((set, get) => ({
             defaultDistance,
           )
         : orbit.distance;
+    // Elevation follows the animation, not the distance: inspect can hold an
+    // angle the zoom curve would never pick, and coming back has to undo that
+    // smoothly instead of snapping on the first frame.
+    const elevation =
+      recenter.fromElevation !== null && recenter.toElevation !== null
+        ? clampElevation(
+            recenter.fromElevation +
+              (recenter.toElevation - recenter.fromElevation) * Math.min(1, Math.max(0, progress)),
+          )
+        : orbit.elevation;
+
     if (progress >= 1)
       set({
         recenter: null,
-        orbit: {
-          ...orbit,
-          target: { ...recenter.to },
-          distance,
-          elevation: elevationForDistance(distance, defaultDistance),
-        },
+        orbit: { ...orbit, target: { ...recenter.to }, distance, elevation },
       });
     else
       set({
@@ -237,34 +269,38 @@ export const useCameraStore = create<CameraState>()((set, get) => ({
           ...orbit,
           target: lerpTarget(recenter.from, recenter.to, progress),
           distance,
-          elevation: elevationForDistance(distance, defaultDistance),
+          elevation,
         },
       });
   },
   startFocusTour: (focusTarget, faceYaw, options) => {
-    const { orbit, defaultDistance } = get();
+    const { orbit, defaultDistance, inspectReturn } = get();
     const { spawn, inspect } = surfaceObjectMotion;
     const isInspect = options?.mode === 'inspect';
-    const focusDistance = clampDistance(
-      defaultDistance * (isInspect ? inspect.distanceFactor : spawn.focusDistanceFactor),
-      defaultDistance,
-    );
-    const target = isInspect
-      ? {
-          x: focusTarget.x,
-          y: focusTarget.y - inspectOffset(focusDistance, options?.framing),
-          z: focusTarget.z,
-        }
-      : { ...focusTarget };
+    const framing = isInspect ? (options?.framing ?? null) : null;
+    const focusDistance =
+      framing === null
+        ? clampDistance(
+            defaultDistance * (isInspect ? inspect.distanceFactor : spawn.focusDistanceFactor),
+            defaultDistance,
+          )
+        : clampInspectDistance(framing.distance, defaultDistance);
+    const target = framing === null ? { ...focusTarget } : { ...framing.target };
     const focusAzimuth = isInspect ? orbit.azimuth : orbitAzimuthFacing(faceYaw);
+    const focusElevation =
+      framing === null
+        ? elevationForDistance(focusDistance, defaultDistance)
+        : clampElevation(framing.elevation);
     const tour: FocusTourState = {
       focusTarget: target,
       savedTarget: { ...orbit.target },
       savedDistance: orbit.distance,
       savedAzimuth: orbit.azimuth,
+      savedElevation: orbit.elevation,
       focusDistance,
       faceYaw,
       focusAzimuth,
+      focusElevation,
       elapsedSeconds: 0,
       approachSeconds: spawn.approachMs / 1000,
       revealSeconds: isInspect ? 0 : spawn.revealMs / 1000,
@@ -274,7 +310,13 @@ export const useCameraStore = create<CameraState>()((set, get) => ({
       spinTurns: isInspect ? 0 : spawn.spinTurns,
     };
     get().stopAllVelocity();
-    set({ recenter: null, focusTour: tour });
+    set({
+      recenter: null,
+      focusTour: tour,
+      // Tapping a second object mid-inspect must not overwrite where we came from.
+      inspectReturn: isInspect ? (inspectReturn ?? { ...orbit }) : null,
+    });
+
     return focusTourTotalSeconds(tour);
   },
   tickFocusTour: (deltaSeconds) => {
@@ -282,17 +324,15 @@ export const useCameraStore = create<CameraState>()((set, get) => ({
     if (!focusTour) return;
     const next = { ...focusTour, elapsedSeconds: focusTour.elapsedSeconds + deltaSeconds };
     const frame = focusTourFrame(next);
+
     if (frame.done)
       set({
         focusTour: null,
         orbit: {
           ...orbit,
           target: { ...focusTour.focusTarget },
-          distance: clampDistance(focusTour.focusDistance, defaultDistance),
-          elevation: elevationForDistance(
-            clampDistance(focusTour.focusDistance, defaultDistance),
-            defaultDistance,
-          ),
+          distance: clampInspectDistance(focusTour.focusDistance, defaultDistance),
+          elevation: clampElevation(focusTour.focusElevation),
           azimuth: focusTour.focusAzimuth,
         },
       });
@@ -302,31 +342,46 @@ export const useCameraStore = create<CameraState>()((set, get) => ({
         orbit: {
           ...orbit,
           target: frame.target,
-          distance: clampDistance(frame.distance, defaultDistance),
-          elevation: elevationForDistance(
-            clampDistance(frame.distance, defaultDistance),
-            defaultDistance,
-          ),
+          distance: clampInspectDistance(frame.distance, defaultDistance),
+          elevation: clampElevation(frame.elevation),
           azimuth: frame.azimuth,
         },
       });
   },
   cancelFocusTour: () => set({ focusTour: null }),
   endInspect: () => {
-    const { orbit, defaultDistance } = get();
-    if (orbit.target.y === 0 && orbit.distance === defaultDistance) {
-      set({ focusTour: null });
+    const { orbit, defaultDistance, inspectReturn } = get();
+    // Back to the zoom and angle the user was looking from — the inspected cell
+    // stays under the camera, so closing the sheet never teleports the surface.
+    const home = {
+      target: { x: orbit.target.x, y: 0, z: orbit.target.z },
+      distance: inspectReturn?.distance ?? defaultDistance,
+      elevation:
+        inspectReturn?.elevation ?? elevationForDistance(defaultDistance, defaultDistance),
+    };
+
+    if (
+      orbit.target.y === home.target.y &&
+      orbit.distance === home.distance &&
+      orbit.elevation === home.elevation
+    ) {
+      set({ focusTour: null, inspectReturn: null });
+
       return;
     }
+
     set({
       focusTour: null,
+      inspectReturn: null,
       orbitVelocity: ZERO_ORBIT_VELOCITY,
       panVelocity: ZERO_PAN_VELOCITY,
       recenter: {
         from: { ...orbit.target },
-        to: { x: orbit.target.x, y: 0, z: orbit.target.z },
+        to: home.target,
         fromDistance: orbit.distance,
-        toDistance: defaultDistance,
+        toDistance: home.distance,
+        fromElevation: orbit.elevation,
+        toElevation: home.elevation,
         elapsedSeconds: 0,
         durationSeconds: cameraMotion.recenterDurationMs / 1000,
       },
@@ -335,13 +390,14 @@ export const useCameraStore = create<CameraState>()((set, get) => ({
   tickMomentum: (deltaSeconds) => {
     if (get().recenter !== null || get().focusTour !== null) return;
     const safeDelta = Math.min(deltaSeconds, 0.05);
-    const { orbitVelocity, panVelocity, orbit, defaultDistance } = get();
+    const { orbitVelocity, panVelocity, orbit } = get();
     const orbitDead =
       Math.abs(orbitVelocity.azimuth) < cameraMotion.orbitMinVelocity &&
       Math.abs(orbitVelocity.elevation) < cameraMotion.orbitMinVelocity;
     const panDead =
       Math.abs(panVelocity.x) < cameraMotion.panMinVelocity &&
       Math.abs(panVelocity.z) < cameraMotion.panMinVelocity;
+
     if (orbitDead && panDead) {
       if (
         orbitVelocity.azimuth !== 0 ||
@@ -350,16 +406,20 @@ export const useCameraStore = create<CameraState>()((set, get) => ({
         panVelocity.z !== 0
       )
         set({ orbitVelocity: ZERO_ORBIT_VELOCITY, panVelocity: ZERO_PAN_VELOCITY });
+
       return;
     }
+
     const orbitDecay = Math.exp(-cameraMotion.orbitDecay * safeDelta);
     const panDecay = Math.exp(-cameraMotion.panDecay * safeDelta);
-    const distance = orbit.distance;
+
     set({
       orbit: {
         ...orbit,
         azimuth: orbit.azimuth + (orbitDead ? 0 : orbitVelocity.azimuth * safeDelta),
-        elevation: elevationForDistance(distance, defaultDistance),
+        // Momentum never touches the distance, so it must not re-derive the angle
+        // either — that used to yank a held angle back onto the zoom curve.
+        elevation: orbit.elevation,
         target: {
           x: orbit.target.x + (panDead ? 0 : panVelocity.x * safeDelta),
           y: orbit.target.y,
@@ -385,9 +445,11 @@ export const useCameraStore = create<CameraState>()((set, get) => ({
       panVelocity: ZERO_PAN_VELOCITY,
       recenter: null,
       focusTour: null,
+      inspectReturn: null,
     });
   },
 }));
+
 export const selectOrbit = (state: CameraState): OrbitState => state.orbit;
 export const selectMapCenterCell = (state: CameraState): Cell => state.mapCenterCell;
 export const selectFocusTour = (state: CameraState): FocusTourState | null => state.focusTour;
