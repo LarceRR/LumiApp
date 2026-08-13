@@ -38,7 +38,6 @@ import { HitboxOverlay } from "../components/HitboxOverlay";
 import { MemberAvatars } from "../components/MemberAvatars";
 import { ObjectDetailsSheet } from "../components/ObjectDetailsSheet";
 import { useSpaces } from "../hooks/useSpaces";
-import { Host, Button } from "@expo/ui/swift-ui";
 const ADD_BUTTON_SIZE = 64;
 export function SpaceScreen(): ReactElement {
   const insets = useSafeAreaInsets();
@@ -128,14 +127,6 @@ export function SpaceScreen(): ReactElement {
         <View pointerEvents="box-none" style={styles.topRight}>
           <MemberAvatars space={activeSpace} currentUserId={currentUserId} />
         </View>
-        <Host style={{ flex: 1 }}>
-          <Button>
-            <Text>
-              Save
-              changessssssssssssssssssasfasfssssssssssssssssssssssssssssssssssssssssssssssssssss
-            </Text>
-          </Button>
-        </Host>
       </View>
       <View
         pointerEvents="box-none"

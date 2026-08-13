@@ -1,7 +1,9 @@
 const path = require('node:path');
-const { getDefaultConfig } = require('expo/metro-config');
+const {
+  getSentryExpoConfig
+} = require("@sentry/react-native/metro");
 
-const config = getDefaultConfig(__dirname);
+const config = getSentryExpoConfig(__dirname);
 
 // The backend is a separate npm project inside this repo. Metro must not crawl it,
 // otherwise its node_modules produce duplicate-module and resolution errors.
