@@ -85,7 +85,7 @@ jobs:
 
       - name: Сборка unsigned iOS archive
         run: |
-          set -euo pipefail
+          set -o pipefail
 
           mkdir -p build
 
@@ -99,7 +99,31 @@ jobs:
             archive \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGN_IDENTITY=""
+            CODE_SIGN_IDENTITY="" \
+            2>&1 | tee build/xcodebuild.log
+
+      - name: Показать ошибки Xcode
+        if: failure()
+        run: |
+          echo "========== XCODE ERRORS =========="
+
+          grep -n -E \
+            "error:|fatal error:|BUILD FAILED|ARCHIVE FAILED|The following build commands failed" \
+            build/xcodebuild.log || true
+
+          echo ""
+          echo "========== LAST 200 LINES =========="
+
+          tail -n 200 build/xcodebuild.log
+
+      - name: Загрузить Xcode build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: LumiApp-xcode-build-log
+          path: build/xcodebuild.log
+          if-no-files-found: warn
+          retention-days: 7
 
       - name: Проверка archive
         run: |
