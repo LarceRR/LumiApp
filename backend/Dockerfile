@@ -3,7 +3,7 @@ FROM node:22-alpine AS builder
 WORKDIR /app
 
 COPY package.json package-lock.json* ./
-RUN npm ci
+RUN npm ci --legacy-peer-deps --no-optional
 
 COPY tsconfig.json nest-cli.json ./
 COPY src ./src
