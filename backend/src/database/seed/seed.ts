@@ -10,11 +10,11 @@ import { knownKinds } from '@/modules/surface-objects/domain/value-objects/Surfa
 import { spawnNearExisting } from '@/modules/surfaces/domain/services/spawnNearExisting';
 import { cryptoRandomSource } from '@/shared/utils/random';
 
-const PASSWORD = 'lumi-dev-password';
+const PASSWORD = 'twilite-dev-password';
 
 const PEOPLE = [
-  { email: 'anna@lumi.dev', displayName: 'Анна' },
-  { email: 'ivan@lumi.dev', displayName: 'Иван' },
+  { email: 'anna@twilite.dev', displayName: 'Анна' },
+  { email: 'ivan@twilite.dev', displayName: 'Иван' },
 ] as const;
 
 const MOMENTS = [

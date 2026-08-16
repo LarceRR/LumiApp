@@ -1,4 +1,4 @@
-# Lumi API
+# Twilite API
 
 Модульный монолит на NestJS + Fastify. Clean Architecture внутри каждого модуля,
 границы модулей повторяют bounded contexts домена.
@@ -10,18 +10,18 @@ cp .env.example .env          # copy .env.example .env — на Windows
 docker compose up -d postgres redis
 npm ci
 npm run db:migrate
-npm run db:seed               # тестовые данные: anna@lumi.dev / lumi-dev-password
+npm run db:seed               # тестовые данные: anna@twilite.dev / twilite-dev-password
 npm run dev
 ```
 
 API поднимется на `http://localhost:3000`:
 
-| Адрес            | Что там                                  |
-| ---------------- | ---------------------------------------- |
-| `/health`        | состояние сервиса, Postgres и Redis      |
-| `/v1/docs`       | Swagger UI                               |
-| `/v1/docs-json`  | OpenAPI-документ для генерации клиента   |
-| `/realtime`      | WebSocket, токен передаётся как `?token=` |
+| Адрес           | Что там                                   |
+| --------------- | ----------------------------------------- |
+| `/health`       | состояние сервиса, Postgres и Redis       |
+| `/v1/docs`      | Swagger UI                                |
+| `/v1/docs-json` | OpenAPI-документ для генерации клиента    |
+| `/realtime`     | WebSocket, токен передаётся как `?token=` |
 
 Всё приложение целиком (API + Postgres + Redis) поднимается одной командой:
 
@@ -58,13 +58,13 @@ docker compose up --build
 
 ## Команды
 
-| Команда               | Назначение                                    |
-| --------------------- | --------------------------------------------- |
-| `npm run dev`         | dev-режим с перезапуском                      |
-| `npm run verify`      | типы + линтер + тесты (то же, что в CI)       |
-| `npm run db:generate` | SQL-миграция из схемы Drizzle                 |
-| `npm run db:migrate`  | применить миграции                            |
-| `npm run db:seed`     | данные для разработки                         |
+| Команда               | Назначение                              |
+| --------------------- | --------------------------------------- |
+| `npm run dev`         | dev-режим с перезапуском                |
+| `npm run verify`      | типы + линтер + тесты (то же, что в CI) |
+| `npm run db:generate` | SQL-миграция из схемы Drizzle           |
+| `npm run db:migrate`  | применить миграции                      |
+| `npm run db:seed`     | данные для разработки                   |
 
 Схема — источник истины: после правки `src/database/schema` нужно выполнить
 `npm run db:generate` и закоммитить SQL. CI проверяет, что они не разошлись.

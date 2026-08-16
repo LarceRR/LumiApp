@@ -1,13 +1,13 @@
 export const storageKeys = {
-  authSession: 'lumi.auth.session',
-  spacesSnapshot: 'lumi.spaces.snapshot',
-  localStateSchema: 'lumi.local-state.schema',
-  surfaceObjects: 'lumi.surface-objects',
-  timeline: 'lumi.timeline',
-  offlineQueue: 'lumi.offline-queue',
-  settings: 'lumi.settings',
-  fireSettings: 'lumi.fire-settings',
-  queryCache: 'lumi.query-cache',
+  authSession: 'twilite.auth.session',
+  spacesSnapshot: 'twilite.spaces.snapshot',
+  localStateSchema: 'twilite.local-state.schema',
+  surfaceObjects: 'twilite.surface-objects',
+  timeline: 'twilite.timeline',
+  offlineQueue: 'twilite.offline-queue',
+  settings: 'twilite.settings',
+  fireSettings: 'twilite.fire-settings',
+  queryCache: 'twilite.query-cache',
 } as const;
 
 export const httpConfig = { timeoutMs: 15_000, retryLimit: 2 } as const;

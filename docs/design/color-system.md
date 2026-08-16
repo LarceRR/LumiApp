@@ -1,4 +1,4 @@
-# Lumi colour system
+# Twilite colour system
 
 A colour system for an app whose main character is not the UI. The hero is the
 flame on the surface; everything else is the room it burns in.
@@ -7,24 +7,24 @@ flame on the surface; everything else is the room it burns in.
 
 1. **Nothing else is allowed to be saturated.** The flame is the only object in
    the app with full chroma. Every neutral, every control, every card sits below
-   it. If a screen feels flat, the fix is contrast in *lightness*, never more
+   it. If a screen feels flat, the fix is contrast in _lightness_, never more
    colour.
 2. **No pure white, no pure black.** `#FFFFFF` reads as unfinished and fatigues
    at night; `#000000` smears on OLED and kills atmosphere. We ship a warm paper
    stock and a violet-tilted near-black instead.
-3. **Dark mode is a different room, not an inversion.** Surfaces get *lighter*
+3. **Dark mode is a different room, not an inversion.** Surfaces get _lighter_
    as they come forward, the accent shifts one step brighter, and dividers stop
    being ink and start being light.
 
 ## Why these hues
 
-| Family | Role | Hue | Reasoning |
-| --- | --- | --- | --- |
-| `paper` | Light neutrals | ~85° | Warm off-white. Paper, wax, unbleached stock. Reads as an object you own rather than a screen you visit. |
-| `basalt` | Dark neutrals | ~300° | Near-black tilted violet-brown. Cool blue-blacks feel clinical; a violet bias reads as dusk, which is when this app is actually opened. |
-| `ember` | Primary | ~55° | Burnt saffron rather than a safety-cone orange. High arousal, positive valence — the colour of the thing the user came to create. |
-| `damson` | Secondary | ~340° | Muted plum. Long-wavelength but low chroma: intimacy and memory without turning the product into a Valentine's card. |
-| `verdigris` | Tertiary | ~180° | Patina teal. The cognitive counterweight to the flame — used for duration, streaks, and anything that should feel *settled*. |
+| Family      | Role           | Hue   | Reasoning                                                                                                                               |
+| ----------- | -------------- | ----- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `paper`     | Light neutrals | ~85°  | Warm off-white. Paper, wax, unbleached stock. Reads as an object you own rather than a screen you visit.                                |
+| `basalt`    | Dark neutrals  | ~300° | Near-black tilted violet-brown. Cool blue-blacks feel clinical; a violet bias reads as dusk, which is when this app is actually opened. |
+| `ember`     | Primary        | ~55°  | Burnt saffron rather than a safety-cone orange. High arousal, positive valence — the colour of the thing the user came to create.       |
+| `damson`    | Secondary      | ~340° | Muted plum. Long-wavelength but low chroma: intimacy and memory without turning the product into a Valentine's card.                    |
+| `verdigris` | Tertiary       | ~180° | Patina teal. The cognitive counterweight to the flame — used for duration, streaks, and anything that should feel _settled_.            |
 
 Signals (`moss`, `madder`, `saffron`) are deliberately desaturated. A destructive
 action should be legible, not louder than a lit match.
@@ -34,7 +34,7 @@ action should be legible, not louder than a lit match.
 Every ramp was laid out in **OKLCH** — even lightness steps, constant hue, chroma
 tapering at the light and dark ends — then written down as sRGB hex because React
 Native has no OKLCH parser. Working in OKLCH is what keeps `ember400` and
-`verdigris400` reading as the *same weight* despite being 125° apart in hue;
+`verdigris400` reading as the _same weight_ despite being 125° apart in hue;
 HSL would not.
 
 Ramp lightness targets (OKLCH L):

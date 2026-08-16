@@ -1,4 +1,4 @@
-# Lumi foundation contracts
+# Twilite foundation contracts
 
 > Issue: #28
 

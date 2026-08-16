@@ -8,7 +8,7 @@ export default defineConfig({
   schema: './src/database/schema/index.ts',
   out: './src/database/migrations',
   dbCredentials: {
-    url: process.env['DATABASE_URL'] ?? 'postgres://lumi:lumi@localhost:5432/lumi',
+    url: process.env['DATABASE_URL'] ?? 'postgres://twilite:twilite@localhost:5432/twilite',
   },
   strict: true,
   verbose: true,

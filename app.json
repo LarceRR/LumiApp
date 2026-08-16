@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "LumiApp",
-    "slug": "LumiApp",
-    "version": "1.0.0",
+    "name": "Twilite",
+    "slug": "twilite",
+    "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "scheme": "lumiapp",
+    "scheme": "twilite",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "assetBundlePatterns": [
@@ -13,10 +13,10 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.lumiapp.app"
+      "bundleIdentifier": "com.twilite.app"
     },
     "android": {
-      "package": "com.lumiapp.app",
+      "package": "com.twilite.app",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -40,7 +40,7 @@
         "@sentry/react-native/expo",
         {
           "url": "https://sentry.io/",
-          "project": "lumiapp",
+          "project": "twilite",
           "organization": "larace"
         }
       ]

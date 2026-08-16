@@ -12,7 +12,7 @@ export function setupSwagger(app: INestApplication, config: AppConfig): void {
   const document = SwaggerModule.createDocument(
     app,
     new DocumentBuilder()
-      .setTitle('Lumi API')
+      .setTitle('Twilite API')
       .setDescription(
         [
           'Space — центральная сущность. У каждого Space одна Surface (grid),',

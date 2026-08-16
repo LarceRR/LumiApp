@@ -72,7 +72,7 @@ export function createContainer(hooks: ContainerHooks): Container {
   }
 
   const logger = createLogger({
-    scope: 'lumi',
+    scope: 'twilite',
     transports,
     baseMeta: { mode: env.mode },
   });

@@ -86,7 +86,7 @@ jobs:
       - name: Список Xcode schemes
         run: |
           xcodebuild \
-            -workspace ios/LumiApp.xcworkspace \
+            -workspace ios/Twilite.xcworkspace \
             -list
 
       - name: Сборка unsigned iOS archive
@@ -96,12 +96,12 @@ jobs:
           mkdir -p build
 
           xcodebuild \
-            -workspace ios/LumiApp.xcworkspace \
-            -scheme LumiApp \
+            -workspace ios/Twilite.xcworkspace \
+            -scheme Twilite \
             -configuration Release \
             -sdk iphoneos \
             -destination "generic/platform=iOS" \
-            -archivePath "$GITHUB_WORKSPACE/build/LumiApp.xcarchive" \
+            -archivePath "$GITHUB_WORKSPACE/build/Twilite.xcarchive" \
             archive \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
@@ -126,7 +126,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: LumiApp-xcode-build-log
+          name: Twilite-xcode-build-log
           path: build/xcodebuild.log
           if-no-files-found: warn
           retention-days: 7
@@ -135,49 +135,49 @@ jobs:
         run: |
           set -euo pipefail
 
-          APP_PATH="build/LumiApp.xcarchive/Products/Applications/LumiApp.app"
+          APP_PATH="build/Twilite.xcarchive/Products/Applications/Twilite.app"
 
           if [ ! -d "$APP_PATH" ]; then
-            echo "::error::LumiApp.app не найден внутри archive."
+            echo "::error::Twilite.app не найден внутри archive."
             echo ""
             echo "Содержимое archive:"
             find build/LumiApp.xcarchive -maxdepth 6 -print
             exit 1
           fi
 
-          echo "LumiApp.app найден:"
+          echo "Twilite.app найден:"
           ls -lah "$APP_PATH"
 
       - name: Создание unsigned IPA
         run: |
           set -euo pipefail
 
-          APP_PATH="build/LumiApp.xcarchive/Products/Applications/LumiApp.app"
+          APP_PATH="build/Twilite.xcarchive/Products/Applications/Twilite.app"
 
           rm -rf build/Payload
           mkdir -p build/Payload
 
-          cp -R "$APP_PATH" build/Payload/LumiApp.app
+          cp -R "$APP_PATH" build/Payload/Twilite.app
 
           cd build
-          zip -qry LumiApp-unsigned.ipa Payload
+          zip -qry Twilite-unsigned.ipa Payload
 
           echo "IPA создан:"
-          ls -lh LumiApp-unsigned.ipa
+          ls -lh Twilite-unsigned.ipa
 
       - name: Загрузка unsigned IPA
         uses: actions/upload-artifact@v4
         with:
-          name: LumiApp-iOS-unsigned
-          path: build/LumiApp-unsigned.ipa
+          name: Twilite-iOS-unsigned
+          path: build/Twilite-unsigned.ipa
           if-no-files-found: error
           retention-days: 7
 
       - name: Загрузка Xcode archive
         uses: actions/upload-artifact@v4
         with:
-          name: LumiApp-iOS-xcarchive
-          path: build/LumiApp.xcarchive
+          name: Twilite-iOS-xcarchive
+          path: build/Twilite.xcarchive
           if-no-files-found: error
           retention-days: 3
 
@@ -193,13 +193,13 @@ jobs:
       postgres:
         image: postgres:16-alpine
         env:
-          POSTGRES_USER: lumi
-          POSTGRES_PASSWORD: lumi
-          POSTGRES_DB: lumi_test
+          POSTGRES_USER: twilite
+          POSTGRES_PASSWORD: twilite
+          POSTGRES_DB: twilite_test
         ports:
           - "5432:5432"
-        options: >-
-          --health-cmd "pg_isready -U lumi -d lumi_test"
+        options: >
+          --health-cmd "pg_isready -U twilite -d twilite_test"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 20
@@ -216,7 +216,7 @@ jobs:
 
     env:
       NODE_ENV: test
-      DATABASE_URL: postgres://lumi:lumi@localhost:5432/lumi_test
+      DATABASE_URL: postgres://twilite:twilite@localhost:5432/twilite_test
       REDIS_URL: redis://localhost:6379
       JWT_ACCESS_SECRET: ci-access-secret-ci-access-secret
       JWT_REFRESH_SECRET: ci-refresh-secret-ci-refresh-secret

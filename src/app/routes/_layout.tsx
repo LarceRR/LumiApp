@@ -70,12 +70,6 @@ function RootLayout(): ReactElement {
     <AppProviders>
       <StatusBar style={scheme === "dark" ? "light" : "dark"} />
       <RootNavigator />
-      <Button
-        title="Try!"
-        onPress={() => {
-          Sentry.captureException(new Error("First error"));
-        }}
-      />
     </AppProviders>
   );
 }

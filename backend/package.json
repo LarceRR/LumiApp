@@ -1,8 +1,8 @@
 {
-  "name": "lumi-backend",
+  "name": "twilite-backend",
   "version": "1.0.0",
   "private": true,
-  "description": "Lumi API — modular monolith (NestJS + Fastify + Drizzle)",
+  "description": "Twilite API — modular monolith (NestJS + Fastify + Drizzle)",
   "license": "UNLICENSED",
   "scripts": {
     "build": "nest build",

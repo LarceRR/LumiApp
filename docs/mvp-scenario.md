@@ -6,7 +6,7 @@
 
 ## Goal
 
-Проверить один сквозной путь Lumi от регистрации до появления общего момента у обоих участников:
+Проверить один сквозной путь Twilite от регистрации до появления общего момента у обоих участников:
 
 `регистрация → создание пространства → приглашение партнёра → принятие приглашения → добавление момента → синхронизация → повторное открытие пространства через неделю`
 
@@ -38,7 +38,7 @@ Expected:
 
 ### 2. Создание общего пространства
 
-1. Создать пространство с названием `Lumi MVP test <run-id>`.
+1. Создать пространство с названием `Twilite MVP test <run-id>`.
 2. Обновить список пространств через HTTP.
 3. Открыть созданное пространство.
 
@@ -114,14 +114,14 @@ Expected:
 
 ## Idempotency and source-of-truth contract
 
-| Mutation | Retry policy | Source of truth |
-| --- | --- | --- |
-| Registration | Same email is a conflict; no duplicate user | HTTP response + database |
-| Create space | Client retries must not create an unintended duplicate; final policy must be explicit in API | HTTP response + database |
-| Invite member | Same active invitation is reused or returns a stable conflict | HTTP response + database |
-| Accept invitation | Repeating the request is safe and does not duplicate membership | HTTP response + database |
-| Create surface object | Same idempotency key returns the original result | HTTP response + database |
-| Realtime delivery | Duplicate events are ignored; missed events are recovered over HTTP | HTTP response + database |
+| Mutation              | Retry policy                                                                                 | Source of truth          |
+| --------------------- | -------------------------------------------------------------------------------------------- | ------------------------ |
+| Registration          | Same email is a conflict; no duplicate user                                                  | HTTP response + database |
+| Create space          | Client retries must not create an unintended duplicate; final policy must be explicit in API | HTTP response + database |
+| Invite member         | Same active invitation is reused or returns a stable conflict                                | HTTP response + database |
+| Accept invitation     | Repeating the request is safe and does not duplicate membership                              | HTTP response + database |
+| Create surface object | Same idempotency key returns the original result                                             | HTTP response + database |
+| Realtime delivery     | Duplicate events are ignored; missed events are recovered over HTTP                          | HTTP response + database |
 
 If a mutation does not yet accept an idempotency key, the E2E test must record that as a failing contract item rather than silently treating a successful first request as proof of retry safety.
 
